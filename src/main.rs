@@ -59,23 +59,11 @@ struct ReadinfoArgs {
     #[clap(short, long)]
     reads: Option<PathBuf>,
     /// VCF file with to modify. (needs to be indexed)
-    #[clap(short, long, conflicts_with = "use_stdin")]
+    #[clap(short, long)]
     variants: Option<PathBuf>,
-    /// A flag to indicate variants come from stdin instead of a file.
-    #[clap(long, action)]
-    use_stdin: bool,
-    /// Output VCF file. Incompatible with --stdout/-O
-    #[clap(short = 'o', long, default_value = "out.vcf.gz", conflicts_with = "use_stdout")]
+    /// Output json file
+    #[clap(short = 'o', long, default_value = "out.json")]
     outfile: Option<PathBuf>,
-    /// A flag to indicate stdout instead of a file.
-    #[clap(long, action)]
-    use_stdout: bool,
-    /// Name for the information field to add into the vcf.
-    #[clap(short, long, default_value = "MS")]
-    infoname: Option<String>,
-    /// Description for the information field to add into the vcf.
-    #[clap(short = 'I', long, default_value = "mutation subtype")]
-    infodescription: Option<String>,
 }
 
 
@@ -104,17 +92,29 @@ fn main() {
             );
         },
         Commands::Readinfo(readinfoargs) => {
-            // println!("'myapp add' was used, name is: {:?}", addmsargs.infoname);
-            let info_name = readinfoargs.infoname.clone().unwrap();
-            let info_description = readinfoargs.infodescription.clone().unwrap();
-            //let use_stdin = readinfoargs.use_stdin;
-            //let use_stdout = readinfoargs.use_stdout;
+
+            let reads_file_result = readinfoargs.reads.clone();
+            let reads_file = match reads_file_result {
+                Some(reads_file) => reads_file,
+                None => panic!("No reads file provided"),
+            };
+
+            let variants_file_result = readinfoargs.variants.clone();
+            let variants_file = match variants_file_result {
+                Some(variants_file) => variants_file,
+                None => panic!("No variants file provided"),
+            };
+
+            let outfile_result = readinfoargs.outfile.clone();
+            let outfile = match outfile_result {
+                Some(outfile) => outfile,
+                None => panic!("No outfile provided"),
+            };
+
             readinfo::readinfo(
-                readinfoargs.reads.clone().unwrap(),
-                readinfoargs.variants.clone().unwrap(),
-                readinfoargs.outfile.clone().unwrap(),
-                info_name,
-                info_description,
+                reads_file,
+                variants_file,
+                outfile,
             );
         },
     }
