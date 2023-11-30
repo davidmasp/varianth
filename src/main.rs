@@ -1,5 +1,7 @@
 
+mod core;
 mod ms;
+mod readinfo;
 
 use std::path::PathBuf;
 
@@ -17,8 +19,8 @@ struct Cli {
 enum Commands {
     /// Adds mutation subtype (MS) into vcf file from a fasta
     Addms(AddmsArgs),
+    Readinfo(ReadinfoArgs)
 }
-
 
 // to add a non-positional argument, we need to put this above the arg.
 //#[clap(short, long)]
@@ -51,6 +53,32 @@ struct AddmsArgs {
     infodescription: Option<String>,
 }
 
+#[derive(Args)]
+struct ReadinfoArgs {
+    /// BAM file with read information. (needs to be indexed)
+    #[clap(short, long)]
+    reads: Option<PathBuf>,
+    /// VCF file with to modify. (needs to be indexed)
+    #[clap(short, long, conflicts_with = "use_stdin")]
+    variants: Option<PathBuf>,
+    /// A flag to indicate variants come from stdin instead of a file.
+    #[clap(long, action)]
+    use_stdin: bool,
+    /// Output VCF file. Incompatible with --stdout/-O
+    #[clap(short = 'o', long, default_value = "out.vcf.gz", conflicts_with = "use_stdout")]
+    outfile: Option<PathBuf>,
+    /// A flag to indicate stdout instead of a file.
+    #[clap(long, action)]
+    use_stdout: bool,
+    /// Name for the information field to add into the vcf.
+    #[clap(short, long, default_value = "MS")]
+    infoname: Option<String>,
+    /// Description for the information field to add into the vcf.
+    #[clap(short = 'I', long, default_value = "mutation subtype")]
+    infodescription: Option<String>,
+}
+
+
 fn main() {
     let cli = Cli::parse();
 
@@ -74,7 +102,21 @@ fn main() {
                 use_stdin,
                 use_stdout,
             );
-        }
+        },
+        Commands::Readinfo(readinfoargs) => {
+            // println!("'myapp add' was used, name is: {:?}", addmsargs.infoname);
+            let info_name = readinfoargs.infoname.clone().unwrap();
+            let info_description = readinfoargs.infodescription.clone().unwrap();
+            //let use_stdin = readinfoargs.use_stdin;
+            //let use_stdout = readinfoargs.use_stdout;
+            readinfo::readinfo(
+                readinfoargs.reads.clone().unwrap(),
+                readinfoargs.variants.clone().unwrap(),
+                readinfoargs.outfile.clone().unwrap(),
+                info_name,
+                info_description,
+            );
+        },
     }
 }
 
