@@ -2,6 +2,7 @@
 mod core;
 mod ms;
 mod readinfo;
+mod getrf;
 
 use std::path::PathBuf;
 
@@ -19,7 +20,8 @@ struct Cli {
 enum Commands {
     /// Adds mutation subtype (MS) into vcf file from a fasta
     Addms(AddmsArgs),
-    Readinfo(ReadinfoArgs)
+    Readinfo(ReadinfoArgs),
+    Readfreq(ReadfreqArgs),
 }
 
 // to add a non-positional argument, we need to put this above the arg.
@@ -66,6 +68,18 @@ struct ReadinfoArgs {
     outfile: Option<PathBuf>,
 }
 
+#[derive(Args)]
+struct ReadfreqArgs {
+    /// BAM file with read information. (needs to be indexed)
+    #[clap(short, long)]
+    reads: Option<PathBuf>,
+    /// BED file with codons.
+    #[clap(short, long)]
+    variants: Option<PathBuf>,
+    /// Output json file
+    #[clap(short = 'o', long, default_value = "out.tsv")]
+    outfile: Option<PathBuf>,
+}
 
 fn main() {
     let cli = Cli::parse();
@@ -112,6 +126,33 @@ fn main() {
             };
 
             readinfo::readinfo(
+                reads_file,
+                variants_file,
+                outfile,
+            );
+        },
+
+        Commands::Readfreq(readfreqargs) => {
+
+            let reads_file_result = readfreqargs.reads.clone();
+            let reads_file = match reads_file_result {
+                Some(reads_file) => reads_file,
+                None => panic!("No reads file provided"),
+            };
+
+            let variants_file_result = readfreqargs.variants.clone();
+            let variants_file = match variants_file_result {
+                Some(variants_file) => variants_file,
+                None => panic!("No variants file provided"),
+            };
+
+            let outfile_result = readfreqargs.outfile.clone();
+            let outfile = match outfile_result {
+                Some(outfile) => outfile,
+                None => panic!("No outfile provided"),
+            };
+
+            getrf::readfreq(
                 reads_file,
                 variants_file,
                 outfile,

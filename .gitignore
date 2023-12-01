@@ -3,3 +3,4 @@ devdata
 
 *.json
 *.vcf.gz
+*.tsv
