@@ -1,1 +1,6 @@
 /target
+devdata
+
+*.json
+*.vcf.gz
+*.tsv
