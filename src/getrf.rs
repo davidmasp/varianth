@@ -13,6 +13,8 @@ use noodles::core;
 use noodles::sam;
 use noodles::bam;
 use noodles::bed;
+use noodles::sam::record::cigar::Cigar;
+use noodles::sam::record::cigar::op::kind::Kind;
 
 use std::io::Write;
 use std::fs::OpenOptions;
@@ -115,78 +117,149 @@ fn get_readfrequency(
         Some(region_end_usize_plus1) => region_end_usize_plus1,
         None => panic!("Problem with usize subtraction, negative position?"),
     };
-
-
     let query = bam_reader.query(bam_header, &region_in).unwrap();
-
     let mut hash_read_counts: HashMap<String, usize> = HashMap::new();
-
-    for result in query {
-        //println!("{} {}", alig_start_usize, region_start_usize);
-
-        let record = result.unwrap();
-
-        let record_flags = record.flags();
+    for alig_result in query {
+        let alig = alig_result.unwrap();
+        let record_flags = alig.flags();
 
         if record_flags.is_qc_fail() || record_flags.is_duplicate() || record_flags.is_secondary() || record_flags.is_supplementary() {
             continue;
         }
 
-        let alig_start = record.alignment_start().unwrap();
+        let alig_start = alig.alignment_start().unwrap();
         let alig_start_usize = usize::from(alig_start);
-        let alig_start_usize_minus1_result = alig_start_usize.checked_sub(1); // this is for 1-based substraction later
-        
-        let alig_start_usize_minus1 = match alig_start_usize_minus1_result {
-            Some(alig_start_usize_minus1) => alig_start_usize_minus1,
-            None => panic!("Problem with usize subtraction, negative position?"),
+        let alig_end =  alig.alignment_end().unwrap();
+        let alig_end_usize = usize::from(alig_end);
+
+        let alig_sequence = alig.sequence().to_string();
+        let alig_cigar = alig.cigar();
+        println!("{:?}", alig_cigar);
+
+        let sel_seq_result = get_seq(
+            &alig_sequence,
+            &alig_start_usize,
+            &alig_end_usize,
+            &region_start_usize,
+            &region_end_usize_plus1,
+            alig_cigar,
+        );
+
+        let sel_seq = match sel_seq_result {
+            Some(sel_seq) => sel_seq,
+            None => continue,
         };
-
-        if alig_start_usize > region_start_usize {
-            // this means that the aligment starts after the region, thus we can not get the full sequence and
-            // we skip this read
-            continue;
-        }
-
-        let alig_sequence = record.sequence();
-        
-        let mut tmp_seq_str = "".to_string();
-        for i in region_start_usize..region_end_usize_plus1 {
-
-            let sequence_idx_result = i.checked_sub(alig_start_usize_minus1);
-
-            let sequence_idx = match sequence_idx_result {
-                Some(sequence_idx) => sequence_idx,
-                None => panic!("Problem with usize subtraction, negative position?"),
-            };
-            
-
-            let sequence_idx_position = core::Position::try_from(sequence_idx).unwrap();
-
-            let seq_val_result = alig_sequence.get(sequence_idx_position);
-            let seq_val = match seq_val_result {
-                Some(seq_val) => seq_val,
-                None => panic!("Problem with sequence index"),
-            };
-
-            let seq_val_char = match seq_val {
-                sam::record::sequence::Base::A => 'A',
-                sam::record::sequence::Base::C => 'C',
-                sam::record::sequence::Base::G => 'G',
-                sam::record::sequence::Base::T => 'T',
-                sam::record::sequence::Base::N => 'N',
-                _ => 'O'
-            };
-
-            tmp_seq_str.push(seq_val_char);
-
-        }
-        //println!("{}", tmp_seq_str);
-        let stat = hash_read_counts.entry(tmp_seq_str).or_insert(0);
+        println!("seq: {}, pos:{} ", sel_seq, region_end_usize);
+        let stat = hash_read_counts.entry(sel_seq).or_insert(0);
         *stat += 1;
     }
-
     hash_read_counts
+}
 
 
+/*
+
+pub enum Kind {
+    Match,
+    Insertion,
+    Deletion,
+    Skip,
+    SoftClip,
+    HardClip,
+    Pad,
+    SequenceMatch,
+    SequenceMismatch,
+}
+
+From what I can gather,
+
+- M or Match/Mismatch in the read should do nothing.
+- SoftClip in the read should do nothing. ?? VERIFY!
+- SequenceMatch & SequenceMismatch (these are the new M, = & X)
+
+- Deletion (in the read) should decrease the positions of the region.
+- Skip regions (in the read) should decrease the positions of the region.
+        note that these aren't going to be common in WGS data but yes in RNA
+- HardClip (in the read) should decrease the positions of the region. ?? VERIFY!
+
+- Insertion (in the read) should increase the positions of the region.
+*/
+
+
+fn get_seq(sequence: &str, astart: &usize, aend: &usize, rstart: &usize, rend: &usize, alig_cigar: &Cigar) -> Option<String> {
+    if rstart < astart {
+        return None;
+    }
+
+    if rend > aend {
+        return None;
+    }
+
+    let mut rel_start = rstart - astart + 1;
+    let mut rel_end = rend - astart + 1;
+
+    /*
+    let mut mod_rel_start = rel_start;
+    let mut mod_rel_end = rel_end;
+     */
+    let mut del_pos_modifier: usize = 0;
+    let mut softclip_pos_modifier: usize = 0;
+    let mut cursor : usize = 1;
+    let mut new_sequence = "".to_string();
+    for i in 0..alig_cigar.len() {
+        let cigar_op = alig_cigar[i]; // operation
+        let chunk_size: usize = cigar_op.len(); // block size
+        let chunk_type = cigar_op.kind();
+        match chunk_type {
+            Kind::Match | Kind::SequenceMatch | Kind::SequenceMismatch => {
+                let idx_seq = cursor - 1 - del_pos_modifier + softclip_pos_modifier;
+                let idx_seq_end = cursor + chunk_size - 1 - del_pos_modifier + softclip_pos_modifier;
+                let extra_seq = sequence[idx_seq..idx_seq_end].to_string();
+                new_sequence.push_str(&extra_seq);
+                cursor += chunk_size;
+            },
+            Kind::SoftClip => {
+                softclip_pos_modifier += chunk_size;
+            },
+            Kind::HardClip | Kind::Pad  => {
+                return None;
+            },
+            Kind::Insertion => {
+                let idx_seq = cursor - 1 - del_pos_modifier + softclip_pos_modifier;
+                let idx_seq_end = cursor + chunk_size - 1 - del_pos_modifier + softclip_pos_modifier;
+                let extra_seq = sequence[idx_seq..idx_seq_end].to_string();
+                new_sequence.push_str(&extra_seq);
+                // cursor does not move, but relative positions do
+                if rel_start > cursor {
+                    rel_start += chunk_size;
+                }
+                if rel_end > cursor {
+                    rel_end += chunk_size;
+                }
+            },
+            Kind::Deletion => {
+                // here adds "-"
+                let deletion_seq = "-".repeat(chunk_size);
+                new_sequence.push_str(&deletion_seq);
+                // cursor advances
+                cursor += chunk_size;
+                del_pos_modifier += chunk_size;
+            },
+            Kind::Skip => {
+                // here adds "N"
+                let skip_seq = "N".repeat(chunk_size);
+                new_sequence.push_str(&skip_seq);
+                // cursor advances
+                cursor += chunk_size;
+                del_pos_modifier += chunk_size;
+            },
+        };
+    }
+    // this is only to convert 1-based input to 0-based substring
+    let rel_start_idx: usize = rel_start - 1;
+    let rel_end_idx: usize = rel_end - 1;
+    println!("{}",new_sequence);
+    let result_seq = &new_sequence[rel_start_idx..rel_end_idx];
+    Some(result_seq.to_string())
 }
 

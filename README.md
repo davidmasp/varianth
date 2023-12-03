@@ -37,6 +37,10 @@ reference sequence.
 
 The input needs to be a bed (N=3) file and a bam file.
 
+:warning: **note** that because I am not sure how to treat the
+hard clipped and pan cigar operations, reads with 
+any of such bases are not considered.
+
 #### Example
 
 ```bash

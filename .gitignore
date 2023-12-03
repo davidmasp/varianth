@@ -4,3 +4,7 @@ devdata
 *.json
 *.vcf.gz
 *.tsv
+
+debug
+test.out
+.DS_Store
