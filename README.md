@@ -1,12 +1,27 @@
-# Helpers for VARIANT analysis (hvariant)
-
-&Theta;
+# collection for VARIANT Helpers (varianth)
 
 
-This is a set of small rust tools that can be helpful in the analysis
-of genomic variants, written in rust.
+Set of rust tools and functions that aim at helping
+the analysis of genomic variant sites.
+
+pronounced like tenth (with final &Theta;)
 
 :warning: This is experimental development
+
+This crate relies massively in noodles, although the structs might
+look sometimes duplicated here we aim at generating a unique set of
+types that is sharable across the package while in noodles this is not
+necessarly the case.
+
+```
+
+hyperfine -m 5 --parameter-scan KMER 5 8 --warmup 2 -n "jelly_5" -n "jelly_6" -n "jelly_7" -n "jelly_8" "jellyfish count -m {KMER} -s 100M -t 1 Saccharomyces_cerevisiae/UCSC/sacCer3/Sequence/WholeGenomeFasta/genome.fa && jellyfish dump mer_counts.jf > mer_counts_dumps.fa" --export-json jelly.json
+
+hyperfine -m 5 --parameter-scan KMER 5 8 --warmup 2 -n "var_5" -n "var_6" -n "var_7" -n "var_8" "~/projects/varianth/target/release/varianth kcount -K {KMER} Saccharomyces_cerevisiae/UCSC/sacCer3/Sequence/WholeGenomeFasta/genome.fa -o test.json" --export-json var.json
+
+
+```
+
 
 ## Tools
 

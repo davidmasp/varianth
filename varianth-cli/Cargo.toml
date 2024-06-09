@@ -1,0 +1,22 @@
+[package]
+name = "varianth-cli"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+clap = { version = "4.5.6", features = ["derive"] }
+context = { version = "0.1.0", path = "../context" }
+log = "0.4.21"
+noodles = { version = "0.76.0", features = ["fasta"] }
+regex = "1.10.4"
+rustc-hash = "1.1.0"
+serde = { version = "1.0.203", features = ["derive"] }
+serde_json = { version = "1.0.117", features = ["std"] }
+simplelog = "0.12.2"
+varianth-core = { version = "0.1.0", path = "../varianth-core" }
+
+[[bin]]
+name = "varianth"
+path = "src/main.rs"
