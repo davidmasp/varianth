@@ -52,6 +52,7 @@ struct KcountArgs {
 }
 
 fn main() {
+
     let _ = simplelog::SimpleLogger::init(simplelog::LevelFilter::Info, simplelog::Config::default());
     let cli = Cli::parse();
 

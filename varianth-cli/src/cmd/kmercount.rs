@@ -41,7 +41,16 @@ struct AggregatedCount {
 RUNS
 */
 
-pub fn run (fasta_path: PathBuf, size: usize, regions_str: Option<String>, regions_path: Option<PathBuf>, output: Option<PathBuf>, table_size: Option<usize>, verbose: bool) -> Result<(), std::io::Error>{
+pub fn run (
+    fasta_path: PathBuf, 
+    size: usize, 
+    regions_str: Option<String>, 
+    regions_path: Option<PathBuf>, 
+    output: Option<PathBuf>, 
+    table_size: Option<usize>,
+    verbose: bool
+) -> Result<(), std::io::Error>{
+
     let tbsize = match table_size {
         Some(table_size) => {
             if verbose {
@@ -53,6 +62,7 @@ pub fn run (fasta_path: PathBuf, size: usize, regions_str: Option<String>, regio
             4_u32.pow(size as u32) as usize
         }
     };
+
     let run_result  = match (regions_str, regions_path) {
         (Some(rst), None) => {
             let regions = region_string_to_vec(&rst).expect("Error parsing the regions");
@@ -107,8 +117,7 @@ fn run_indexed(fasta_path: PathBuf, regions: Vec<Region>, size: usize, output: O
         counts: FxHashMap::with_capacity_and_hasher(table_size, Default::default()),
     };
 
-    let mut kht: FxHashMap<&[u8], usize> = FxHashMap::with_capacity_and_hasher(table_size, Default::default());
-    
+    let mut table_vec: Vec<usize> = vec![0; table_size];
     // i am not sure if this is ideal? 
     // currently a work around
     let mut vec_sequences: Vec<Vec<u8>> = Vec::new();
@@ -135,11 +144,11 @@ fn run_indexed(fasta_path: PathBuf, regions: Vec<Region>, size: usize, output: O
     }
 
     for seq in vec_sequences.iter() {
-        update_hm(&mut kht, seq, size);
+        update_table(&mut table_vec, seq, size);
     }
 
-    for (kmer, count) in kht.iter() {
-        let kmer_string = String::from_utf8(kmer.to_vec()).unwrap();
+    for (idx, count) in table_vec.iter().enumerate() {
+        let kmer_string = index_to_string(idx, size);
         agg_count.counts.insert(kmer_string, *count);
     }
 
@@ -173,16 +182,18 @@ fn run_unindexed (fasta_path: PathBuf, size: usize, output: Option<PathBuf>, tab
         total_count.seqnames.push(string_contig_name.clone());
 
         // sequence fun
-        let mut kht: FxHashMap<&[u8], usize> = FxHashMap::with_capacity_and_hasher(table_size, Default::default());
+        let mut table_vec: Vec<usize> = vec![0; table_size];
         let mut sequence_buf = Vec::new();
         let _ = fa.read_sequence(&mut sequence_buf)?;
-        update_hm(&mut kht, &mut sequence_buf, size);
+        update_table(&mut table_vec, &sequence_buf, size);
 
         let mut hash_table_string = FxHashMap::with_capacity_and_hasher(table_size, Default::default());
-        for (kmer, count) in kht.iter() {
-            let kmer_string = String::from_utf8(kmer.to_vec()).unwrap();
+        
+        for (idx, count) in table_vec.iter().enumerate() {
+            let kmer_string = index_to_string(idx, size);
             hash_table_string.insert(kmer_string, *count);
         }
+
         total_count.counts.insert(string_contig_name.clone(), hash_table_string);
         if verbose {
             info!("Contig {} processed", string_contig_name);
@@ -198,21 +209,68 @@ fn run_unindexed (fasta_path: PathBuf, size: usize, output: Option<PathBuf>, tab
     Ok(())
 }
 
-fn update_hm<'a>(hash_table: &mut FxHashMap<&'a [u8], usize>,
-             sequence_buf: &'a Vec<u8>,
-             ksize: usize
-            ) -> () {
+fn slice_to_index(kmer: &[u8]) -> usize {
+    let mut hash_val = 0;
+    let mut count = 0;
+    for &byte in kmer.iter() {
+        match byte {
+            65 => {
+                hash_val = hash_val + 4_usize.pow(count) * 0
+            }, 
+            67 => {
+                hash_val = hash_val + 4_usize.pow(count) * 1
+            },
+            71 => {
+                hash_val = hash_val + 4_usize.pow(count) * 2
+            },
+            84 => {
+                hash_val = hash_val + 4_usize.pow(count) * 3
+            },
+            _ => {
+                panic!("Invalid character in sequence");
+            }
+        }
+        count += 1;
+    }
+    hash_val
+}
+
+fn index_to_string(idx: usize, ksize: usize) -> String {
+    
+    let mut kmer_chars =  Vec::with_capacity(ksize);
+    let max_pos = ksize - 1;
+    let mut idx = idx;
+
+    for i in (0..=max_pos).rev() {
+        // starts with max_pos
+        let intdiv = idx / 4_usize.pow(i as u32);
+        // this is the remainder
+        idx = idx % 4_usize.pow(i as u32);
+
+        let base = match intdiv {
+            0 => 'A',
+            1 => 'C',
+            2 => 'G',
+            3 => 'T',
+            _ => panic!("Invalid index"),
+        };
+        kmer_chars.push(base);
+    }
+    let kmer_string: String = kmer_chars.into_iter().rev().collect();
+    kmer_string
+}
+
+fn update_table(table: &mut Vec<usize>, sequence_buf: &Vec<u8>, ksize: usize) -> () {
     let mut cursor = 0;
     let mut cend = ksize;
     while cend <= sequence_buf.len() {
-        let kmer = &sequence_buf[cursor..cend];
-        let count = hash_table.entry(kmer).or_insert(0);
-        *count += 1;
+        let kmer: &[u8] = &sequence_buf[cursor..cend];
+        let seq_idx = slice_to_index(kmer);
+        table[seq_idx] += 1;
         cursor += 1;
         cend += 1;
     }
 }
-
 
 fn serialize_to_json<T: Serialize>(json_path: Option<PathBuf>, obj: &T) -> () {
     let total_count_json = serde_json::to_string(obj);
