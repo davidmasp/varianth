@@ -1,0 +1,13 @@
+/target
+.Rproj.user
+
+*.bam
+*.bai
+
+pairitytest*
+
+pairity_checks.csv
+test.sam
+header.txt
+*.fa
+*.fai

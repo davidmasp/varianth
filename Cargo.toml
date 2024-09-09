@@ -1,6 +1,7 @@
 [workspace]
 
 members = [
+    "mpileup-rs",
     "hvariant",
     "context",
     "varianth-cli",
