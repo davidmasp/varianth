@@ -1,0 +1,24 @@
+
+[profile.release]
+debug = true
+
+[package]
+name = "rust_mpileup"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+name = "rust_mpileup"
+path = "src/lib.rs"
+
+[[bin]]
+name = "mprs"
+path = "src/main.rs"
+
+[dependencies]
+bstr = "1.9.1"
+noodles = { version = "0.72.0", features = ["bam", "core", "sam", "bgzf", "fasta"] }
+noodles-fasta = "0.37.0"
+thiserror = "1.0"
