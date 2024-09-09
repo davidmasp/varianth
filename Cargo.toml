@@ -2,6 +2,7 @@
 
 members = [
     "hvariant",
+    "mpileup-rs",
     "context",
     "varianth-cli",
     "varianth-core"

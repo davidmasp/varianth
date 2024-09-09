@@ -1,0 +1,114 @@
+---
+title: "README"
+author: "DMP"
+date: '2024-04-05'
+output: md_document
+---
+
+# README
+
+
+```{zsh, engine.opts='-l', echo=FALSE, results='hide', include=FALSE}
+
+# echo $PATH
+```
+
+To render this README.md file run:
+
+```
+Rscript -e "rmarkdown::render('README.Rmd')"
+```
+
+## Feature parity and benchmarks
+
+```{zsh, engine.opts='-l', echo=FALSE, results='hide', include=FALSE}
+
+echo "diff_error_code,test,type" > pairity_checks.csv
+
+```
+
+### Pairity test A
+
+This test 
+
+```{zsh, engine.opts='-l', echo=FALSE, results='hide', include=FALSE}
+mkdir -p pairitytest_basicpileupA
+```
+
+```{zsh, engine.opts='-l'}
+/Users/dmas/bin/hyperfine --warmup 2 \
+    --command-name samtoolsA \
+    --output ./pairitytest_basicpileupA/samtools.mp \
+    --export-json pairitytest_basicpileupA/samtools.json \
+    "/Users/dmas/bin/samtools mpileup -B -f ./hg38.fa --no-output-del --no-output-del --min-MQ 24 --max-depth 0 -Q 0 -x --reverse-del --no-output-ends minsample.bam"
+
+/Users/dmas/bin/hyperfine --warmup 2 \
+    --command-name mprsA \
+    --max-runs 5 \
+    --output ./pairitytest_basicpileupA/mprs.mp \
+    --export-json pairitytest_basicpileupA/mprs.json \
+    "./target/release/mprs"
+```
+
+```{zsh, engine.opts='-l', echo=FALSE, results='hide', include=FALSE}
+diff <(cut -f 1,2 ./pairitytest_basicpileupA/mprs.mp) <(cut -f 1,2 ./pairitytest_basicpileupA/samtools.mp) > /dev/null
+echo "$?,A,positions_covered" >> pairity_checks.csv
+
+diff <(cut -f 1,2,4 ./pairitytest_basicpileupA/mprs.mp) <(cut -f 1,2,4 ./pairitytest_basicpileupA/samtools.mp) > /dev/null
+echo "$?,A,depth" >> pairity_checks.csv
+
+diff <(cat ./pairitytest_basicpileupA/mprs.mp) <(cat ./pairitytest_basicpileupA/samtools.mp) > /dev/null
+echo "$?,A,whole_file" >> pairity_checks.csv
+```
+
+### Benchmarks results
+
+```{r, echo=FALSE}
+library(magrittr)
+lol = list(
+  fn = c(
+    "pairitytest_basicpileupA/samtools.json",
+    "pairitytest_basicpileupA/mprs.json"
+  ),
+  name = c(
+    "samtools_testA",
+    "mprs_testA"
+  )
+)
+
+purrr::pmap_df(lol, function(fn, name){
+  dat = jsonlite::read_json(fn)
+  data.frame(
+    name = name,
+    mean = scales::comma(dat$results[[1]]$mean, accuracy = 0.01),
+    median = scales::comma(dat$results[[1]]$median, accuracy = 0.01)
+  )
+}) -> df
+
+knitr::kable(df)
+```
+
+
+### Parity checks
+
+```{r, echo=FALSE}
+library(magrittr)
+dat = readr::read_csv("pairity_checks.csv")
+
+dat$result = dplyr::case_when(
+      dat$diff_error_code == 0 ~ "✅",
+      TRUE ~ "🔴"
+    ) 
+
+dat %>% 
+  dplyr::select(-diff_error_code) %>% 
+  tidyr::pivot_wider(names_from = type,
+                           values_from = result) -> dat_wide
+
+colnames(dat_wide) = stringr::str_replace(colnames(dat_wide), "_", " ")
+
+dat_wide %>% 
+  knitr::kable()
+
+```
+
