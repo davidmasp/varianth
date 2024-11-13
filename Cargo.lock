@@ -73,6 +73,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "349f9b6a179ed607305526ca489b34ad0a41aed5f7980fa90eb03160b69598fb"
 
 [[package]]
+name = "bit-vec"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5e764a1d40d510daf35e07be9eb06e75770908c27d411ee6c92109c9840eaaf7"
+
+[[package]]
 name = "bitflags"
 version = "2.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -156,6 +162,9 @@ checksum = "0b6a852b24ab71dffc585bcb46eaf7959d175cb865a7152e35b348d1b2960422"
 [[package]]
 name = "context"
 version = "0.1.0"
+dependencies = [
+ "noodles 0.51.0",
+]
 
 [[package]]
 name = "crc32fast"
@@ -347,14 +356,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cba513e9748583439b2d4d4a62ee663e4c24d2f6d8e2b4e9dc536bb170ba8558"
 dependencies = [
  "noodles-bam 0.45.0",
- "noodles-bed",
+ "noodles-bed 0.10.0",
  "noodles-bgzf 0.24.0",
  "noodles-core 0.12.0",
  "noodles-csi 0.24.0",
  "noodles-fasta 0.29.0",
  "noodles-sam 0.42.0",
- "noodles-tabix",
- "noodles-vcf",
+ "noodles-tabix 0.29.0",
+ "noodles-vcf 0.39.0",
 ]
 
 [[package]]
@@ -378,6 +387,18 @@ checksum = "7a346e5a6000033512105890243ff310a307637ae9d9de317f7480e136549a4d"
 dependencies = [
  "noodles-core 0.15.0",
  "noodles-fasta 0.39.0",
+ "noodles-vcf 0.59.0",
+]
+
+[[package]]
+name = "noodles"
+version = "0.82.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4f5855c944a96d41a76b13609b9696b2fb7adbc248048f10a4df836edabddd65"
+dependencies = [
+ "noodles-bed 0.16.0",
+ "noodles-core 0.15.0",
+ "noodles-vcf 0.65.0",
 ]
 
 [[package]]
@@ -386,7 +407,7 @@ version = "0.45.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "38a0d2e2fd41b88e560d553f615605ce0fc5189c29ea0d3f5e8952c85a2e87c3"
 dependencies = [
- "bit-vec",
+ "bit-vec 0.6.3",
  "byteorder",
  "bytes",
  "noodles-bgzf 0.24.0",
@@ -401,7 +422,7 @@ version = "0.62.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9034d03b78d07f9b76d4f1284e21aac520acf573073b7219cb2930b8bb8e74c0"
 dependencies = [
- "bit-vec",
+ "bit-vec 0.6.3",
  "bstr",
  "byteorder",
  "bytes",
@@ -419,6 +440,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "deba180b7b94c524307da91d5bc983e0ccb9a08c4e24384cc8f93e0210af254a"
 dependencies = [
  "noodles-core 0.12.0",
+]
+
+[[package]]
+name = "noodles-bed"
+version = "0.16.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b9ef42b123ceb6058e5dd4f3f4e1e2079253168017969d22c2899372446aed8b"
+dependencies = [
+ "bstr",
+ "lexical-core",
+ "memchr",
+ "noodles-core 0.15.0",
 ]
 
 [[package]]
@@ -458,6 +491,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "noodles-bgzf"
+version = "0.33.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3b50aaa8f0a3c8a0b738b641a6d1a78d9fd30a899ab2d398779ee3c4eb80f1c1"
+dependencies = [
+ "byteorder",
+ "bytes",
+ "crossbeam-channel",
+ "flate2",
+]
+
+[[package]]
 name = "noodles-core"
 version = "0.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -478,7 +523,7 @@ version = "0.24.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1b2bb780250c88bc9ea69b56c1aa9df75decc6b79035f3f5ab10c0cd84d24fc6"
 dependencies = [
- "bit-vec",
+ "bit-vec 0.6.3",
  "byteorder",
  "indexmap",
  "noodles-bgzf 0.24.0",
@@ -491,10 +536,36 @@ version = "0.34.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ad09737d94ec2674361219fb3d46a81561a15773585805de807cab323a15648a"
 dependencies = [
- "bit-vec",
+ "bit-vec 0.6.3",
  "byteorder",
  "indexmap",
  "noodles-bgzf 0.29.0",
+ "noodles-core 0.15.0",
+]
+
+[[package]]
+name = "noodles-csi"
+version = "0.35.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "beb1618ca2aa88662d387197a188686105d6b5e25f6959c52b766276cbfc4620"
+dependencies = [
+ "bit-vec 0.6.3",
+ "byteorder",
+ "indexmap",
+ "noodles-bgzf 0.30.0",
+ "noodles-core 0.15.0",
+]
+
+[[package]]
+name = "noodles-csi"
+version = "0.38.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a69e79dbc09bd0cb86d29469ed29066e9a163bce6640527b343bdea458144618"
+dependencies = [
+ "bit-vec 0.8.0",
+ "byteorder",
+ "indexmap",
+ "noodles-bgzf 0.33.0",
  "noodles-core 0.15.0",
 ]
 
@@ -571,11 +642,38 @@ version = "0.29.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "056e394ddb4c64bcc9806551a69833294062159600aa8ecf7167a922512bda4f"
 dependencies = [
- "bit-vec",
+ "bit-vec 0.6.3",
  "byteorder",
  "noodles-bgzf 0.24.0",
  "noodles-core 0.12.0",
  "noodles-csi 0.24.0",
+]
+
+[[package]]
+name = "noodles-tabix"
+version = "0.41.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0cc110f78cb406f69f42c482d1986526c590b7295f37f0e37f1fc380413400ef"
+dependencies = [
+ "bit-vec 0.6.3",
+ "byteorder",
+ "indexmap",
+ "noodles-bgzf 0.30.0",
+ "noodles-core 0.15.0",
+ "noodles-csi 0.35.0",
+]
+
+[[package]]
+name = "noodles-tabix"
+version = "0.44.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "263e63f58871224d0cd30ffc4a8531fb4f8f8ec686807febde8e19a69673fe01"
+dependencies = [
+ "byteorder",
+ "indexmap",
+ "noodles-bgzf 0.33.0",
+ "noodles-core 0.15.0",
+ "noodles-csi 0.38.0",
 ]
 
 [[package]]
@@ -589,7 +687,37 @@ dependencies = [
  "noodles-bgzf 0.24.0",
  "noodles-core 0.12.0",
  "noodles-csi 0.24.0",
- "noodles-tabix",
+ "noodles-tabix 0.29.0",
+ "percent-encoding",
+]
+
+[[package]]
+name = "noodles-vcf"
+version = "0.59.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7363b498e8a015db55777ccbc5cb0036182175851443c62ef847c7152c8a9919"
+dependencies = [
+ "indexmap",
+ "memchr",
+ "noodles-bgzf 0.30.0",
+ "noodles-core 0.15.0",
+ "noodles-csi 0.35.0",
+ "noodles-tabix 0.41.0",
+ "percent-encoding",
+]
+
+[[package]]
+name = "noodles-vcf"
+version = "0.65.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "37459769faa61c655a2f0cfc1f068c69dbaf92eb648250bd7a7e544b6c6664d0"
+dependencies = [
+ "indexmap",
+ "memchr",
+ "noodles-bgzf 0.33.0",
+ "noodles-core 0.15.0",
+ "noodles-csi 0.38.0",
+ "noodles-tabix 0.44.0",
  "percent-encoding",
 ]
 
@@ -849,7 +977,7 @@ name = "varianth-core"
 version = "0.1.0"
 dependencies = [
  "bstr",
- "noodles 0.76.0",
+ "noodles 0.82.0",
 ]
 
 [[package]]

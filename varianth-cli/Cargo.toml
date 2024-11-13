@@ -9,7 +9,7 @@ edition = "2021"
 clap = { version = "4.5.6", features = ["derive"] }
 context = { version = "0.1.0", path = "../context" }
 log = "0.4.21"
-noodles = { version = "0.76.0", features = ["fasta"] }
+noodles = { version = "0.76.0", features = ["fasta", "core", "vcf"] }
 regex = "1.10.4"
 rustc-hash = "1.1.0"
 serde = { version = "1.0.203", features = ["derive"] }

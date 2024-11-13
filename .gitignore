@@ -8,3 +8,7 @@ devdata
 debug
 test.out
 .DS_Store
+.idea
+*.fa
+*.vcf.gz.tbi
+*.fai

@@ -30,7 +30,18 @@ enum Commands {
 
 #[derive(Args)]
 struct MsArgs {
+    #[arg(short='g', long)]
     fasta: PathBuf,
+    #[arg(short='i', long)]
+    variants: PathBuf,
+    #[arg(short='o', long)]
+    output: PathBuf,
+    #[arg(short='k', long)]
+    kval: usize,
+    #[arg(short='f', long, default_value="MS")]
+    feature: String,
+    #[arg(short='F', long, default_value="Mutation Subtype")]
+    featuredescription: String,
 }
 
 #[derive(Args)]
@@ -58,7 +69,14 @@ fn main() {
 
     match cli.command {
         Commands::Ms(args) => {
-            ms::run();
+            ms::run(
+                args.fasta,
+                args.variants,
+                args.output,
+                args.kval,
+                args.feature,
+                args.featuredescription
+            );
         },
         Commands::Kcount(args) => {
             let rres = kmercount::run(args.fasta, args.size, args.regions, args.regions_file, args.output, args.table_size, args.verbose);
