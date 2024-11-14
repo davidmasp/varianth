@@ -15,6 +15,11 @@ use noodles::vcf::header::Number;
 // for how to write custom fields in header and in the record see
 // https://github.com/zaeleus/noodles/issues/160#issuecomment-1509508247
 
+fn write_nnn_string(k: usize) -> String {
+    let size = (2*k) + 1;
+    std::iter::repeat("N").take(size).collect()
+}
+
 fn get_ntp_from_record(
     vcf_record: vcf::Record,
     fasta_index_reader: &mut fasta::IndexedReader<
@@ -36,8 +41,13 @@ fn get_ntp_from_record(
     let chrom = vcf_record.chromosome().to_string();
     let tntp_region = core::Region::new(chrom, start..=end);
 
-    let tntp =
-        fasta_index_reader.query(&tntp_region).unwrap();
+    let tntp_result = fasta_index_reader.query(&tntp_region);
+    let tntp = match tntp_result {
+        Ok(v) => v,
+        Err(e) => {
+            return write_nnn_string(k)
+        },
+    };
 
     let out_str = String::try_from(
         std::str::from_utf8(tntp.sequence().as_ref())
