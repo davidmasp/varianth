@@ -1,76 +1,196 @@
-# collection for VARIANT Helpers (varianth)
+# varianth - collection for VARIANT Helpers
 
+This is a growing, actively developed and opinionated collection of
+Rust tools and libraries aiming at helping the analyzing genomic variant sites.
 
-Set of rust tools and functions that aim at helping
-the analysis of genomic variant sites.
+_Pronounced like "tenth" (with final θ)_
 
-pronounced like tenth (with final &Theta;)
+⚠️ **This is experimental development** - APIs and functionality may change.
 
-:warning: This is experimental development
+This project relies heavily on [noodles](https://github.com/zaeleus/noodles) for genomic file format handling.
 
-This crate relies massively in noodles, although the structs might
-look sometimes duplicated here we aim at generating a unique set of
-types that is sharable across the package while in noodles this is not
-necessarly the case.
+## Overview
 
-```
+This workspace contains multiple crates providing utilities for variant analysis:
+- **varianth-cli**: Main command-line interface (active development)
+- **varianth-core**: Core data structures and utilities
+- **context**: Mutation subtype annotation functionality
+- **hvariant**: Legacy BAM/VCF analysis tools (deprecated, being migrated)
+- **mpileup-rs**: Rust implementation of mpileup functionality (in development)
 
-hyperfine -m 5 --parameter-scan KMER 5 8 --warmup 2 -n "jelly_5" -n "jelly_6" -n "jelly_7" -n "jelly_8" "jellyfish count -m {KMER} -s 100M -t 1 Saccharomyces_cerevisiae/UCSC/sacCer3/Sequence/WholeGenomeFasta/genome.fa && jellyfish dump mer_counts.jf > mer_counts_dumps.fa" --export-json jelly.json
+---
 
-hyperfine -m 5 --parameter-scan KMER 5 8 --warmup 2 -n "var_5" -n "var_6" -n "var_7" -n "var_8" "~/projects/varianth/target/release/varianth kcount -K {KMER} Saccharomyces_cerevisiae/UCSC/sacCer3/Sequence/WholeGenomeFasta/genome.fa -o test.json" --export-json var.json
+## Installation
 
-
-```
-
-
-## Tools
-
-### Readinfo
-
-Run with:
+**Install directly from GitHub:**
 
 ```bash
-# bam needs to be indexed
-havariant readinfo --reads path/to/file.bam --variants path/to/variants.vcf.gz
+cargo install --git https://github.com/davidmasp/varianth --bin varianth
 ```
 
-It returns a json file (`output.json`, see `-o`) that contains a histogram of position of the variants
-in the read.
-
-The current estimate for 1Mb (_germline_) performance is:
-
-* Number of records: `11281`
-* Time (seconds): `1260`
-* Memory: `< 1G`
-
-Note: this estimates can change dramatically with different conditions.
-
-### Readfreq
-
-It returns a table file (`out.tsv`, see `-o`) that contains the position in
-bed format (0-based) and two extra columns that indicate the sequence and
-number of reads. Sequence is extracted from the bam file, not the
-reference sequence.
-
-The input needs to be a bed (N=3) file and a bam file.
-
-:warning: **note** that because I am not sure how to treat the
-hard clipped and pan cigar operations, reads with 
-any of such bases are not considered.
-
-#### Example
+**Or build from source:**
 
 ```bash
-bedfile="devdata/small.bed"
-bamfile="devdata/wgs1kg/HG00100.chrom20.ILLUMINA.bwa.GBR.low_coverage.20101123.bam"
-hvariant readfreq -r ${bedfile} -v ${bamfile}  
+git clone https://github.com/davidmasp/varianth
+cd varianth
+cargo build --release
 ```
 
+The main binary will be available at `target/release/varianth`.
+
+---
+
+## ✅ Ready to Use (via `varianth` CLI)
+
+These commands are fully functional and available through the `varianth` CLI:
+
+### `ms` - Add Mutation Subtype Annotations
+
+Annotates VCF files with mutation subtype information (e.g., trinucleotide context) by extracting k-mer context around each variant from a reference genome.
+
+**Usage:**
 ```bash
-$ more out.tsv 
+varianth ms \
+  --fasta genome.fa \
+  --variants input.vcf.gz \
+  --output output.vcf.gz \
+  --kval 1 \
+  --feature MS \
+  --featuredescription "Mutation Subtype"
+```
+
+**Parameters:**
+- `-g, --fasta`: Reference genome FASTA file (must be indexed)
+- `-i, --variants`: Input VCF file (must be indexed)
+- `-o, --output`: Output VCF file
+- `-k, --kval`: Number of adjacent bases (1 = trinucleotide context)
+- `-f, --feature`: INFO field name (default: "MS")
+- `-F, --featuredescription`: INFO field description (default: "Mutation Subtype")
+
+### `kcount` - K-mer Counting
+
+Fast k-mer counting from FASTA files with optional region-based filtering.
+
+**Usage:**
+```bash
+varianth kcount \
+  --size 7 \
+  genome.fa \
+  --output counts.json \
+  --verbose
+```
+
+**Parameters:**
+- `-K, --size`: K-mer size
+- `-S, --table-size`: Hash table size (optional, for optimization)
+- `-r, --regions`: Region string for filtering (e.g., "chr1:1000-2000")
+- `-R, --regions-file`: File containing regions (🚨 not implemented yet)
+- `-o, --output`: Output JSON file
+- `-v, --verbose`: Enable verbose output
+
+**Benchmarking:**
+```bash
+# Example comparison with jellyfish
+hyperfine -m 5 --parameter-scan KMER 5 8 --warmup 2 \
+  -n "jellyfish" "jellyfish count -m {KMER} -s 100M -t 1 genome.fa" \
+  -n "varianth" "varianth kcount -K {KMER} genome.fa -o test.json"
+```
+
+---
+
+## 🚧 In Development
+
+These tools are under active development and may not be fully functional or integrated into the main CLI:
+
+### `mpileup-rs` - Rust Mpileup Implementation
+
+A Rust reimplementation of samtools mpileup for generating pileup format from BAM files.
+
+**Status:** Core functionality implemented but standalone binary only. Performance is currently ~24% slower than samtools (1.12s vs 0.90s on test data).
+
+**Current capabilities:**
+- Basic pileup generation with reference base
+- Quality filtering (mapping quality, base quality)
+- Flag-based read filtering
+- Compatible output format with samtools mpileup
+
+**Usage (standalone binary):**
+
+🚨 TO INTEGRATE INTO VARIANTH
+
+## 📚 Legacy Tools (Being Migrated)
+
+The following tools exist in the `hvariant` crate but are deprecated and being migrated to the main `varianth` CLI:
+
+### `readinfo` - Variant Position in Reads Histogram
+
+**Note:** Currently only available in legacy `hvariant` binary (not built by default).
+
+Analyzes BAM files to generate histograms showing where variants appear within reads.
+
+**Legacy Usage:**
+```bash
+hvariant readinfo \
+  --reads sample.bam \
+  --variants variants.vcf.gz \
+  --outfile output.json
+```
+
+**Output:** JSON file with position histograms
+
+**Performance (1Mb germline data):**
+- Records: 11,281
+- Time: 1,260 seconds
+- Memory: < 1GB
+
+### `readfreq` - Read Frequency at Positions
+
+**Note:** Currently only available in legacy `hvariant` binary (not built by default).
+
+Extracts sequences and read counts from BAM files at specified positions.
+
+**Legacy Usage:**
+```bash
+hvariant readfreq \
+  --reads sample.bam \
+  --variants positions.bed \
+  --outfile output.tsv
+```
+
+**Input:** BED file (3 columns) + indexed BAM file
+
+**Output:** TSV with format:
+```
+chr     start   end     sequence        count
 20      47000001        47000003        CAA     4
 20      47100001        47100003        CTG     5
-20      47099956        47099958        TCG     1
-20      47099956        47099958        TAG     4
 ```
+
+**Limitations:**
+- Reads with hard-clipped or pan CIGAR operations are excluded
+- Sequences extracted from reads, not reference
+
+
+## Development Roadmap
+
+**High Priority:**
+- [ ] Integrate `mpileup-rs` into main CLI
+- [ ] Migrate `readinfo` and `readfreq` to `varianth` CLI
+- [ ] Add comprehensive tests
+
+- [ ] Migration of [breadth](https://github.com/davidmasp/breadth)
+- [ ] Migration of [tabix unique](https://github.com/davidmasp/tabixunique)
+- [ ] Migration of [matchseq](https://github.com/davidmasp/matchseq)
+
+**Future Enhancements:**
+- [ ] Parallel processing support for multiple chromosomes
+- [ ] Streaming VCF processing
+- [ ] Additional variant annotation types
+- [ ] Multi-sample support
+
+---
+
+## License
+
+See LICENSE file for details.
 
