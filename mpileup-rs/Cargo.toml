@@ -19,6 +19,6 @@ path = "src/main.rs"
 
 [dependencies]
 bstr = "1.9.1"
-noodles = { version = "0.72.0", features = ["bam", "core", "sam", "bgzf", "fasta"] }
+noodles = { version = "0.90.0", features = ["bam", "core", "sam", "bgzf", "fasta"] }
 noodles-fasta = "0.37.0"
 thiserror = "1.0"
