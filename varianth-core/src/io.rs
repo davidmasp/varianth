@@ -73,8 +73,6 @@ pub fn read_variant_positions_from_bed4(filename: &PathBuf) -> Vec<VariantPositi
 }
 
 
-
-
 pub fn add(left: usize, right: usize) -> usize {
     left + right
 }

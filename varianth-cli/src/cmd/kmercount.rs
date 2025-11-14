@@ -48,7 +48,8 @@ pub fn run (
     regions_path: Option<PathBuf>, 
     output: Option<PathBuf>, 
     table_size: Option<usize>,
-    verbose: bool
+    verbose: bool,
+    skip_ambiguous: bool
 ) -> Result<(), std::io::Error>{
 
     let tbsize = match table_size {
@@ -66,7 +67,7 @@ pub fn run (
     let run_result  = match (regions_str, regions_path) {
         (Some(rst), None) => {
             let regions = region_string_to_vec(&rst).expect("Error parsing the regions");
-            let res = run_indexed(fasta_path, regions, size, output, tbsize, verbose);
+            let res = run_indexed(fasta_path, regions, size, output, tbsize, verbose, skip_ambiguous);
             res
         },
         (None, Some(_)) => {
@@ -77,7 +78,7 @@ pub fn run (
             std::process::exit(1);
         },
         (None, None) => {
-            let res = run_unindexed(fasta_path, size, output, tbsize, verbose);
+            let res = run_unindexed(fasta_path, size, output, tbsize, verbose, skip_ambiguous);
             res
         }
     };
@@ -103,7 +104,7 @@ fn region_string_to_vec(regions: &str) -> Result<Vec<Region>, std::num::TryFromI
     regions_vec
 }
 
-fn run_indexed(fasta_path: PathBuf, regions: Vec<Region>, size: usize, output: Option<PathBuf>, table_size: usize, verbose: bool) -> Result<(), std::io::Error> {
+fn run_indexed(fasta_path: PathBuf, regions: Vec<Region>, size: usize, output: Option<PathBuf>, table_size: usize, verbose: bool, skip_ambiguous: bool) -> Result<(), std::io::Error> {
 
     if verbose {
         info!("Running indexed mode, total of {} regions", regions.len());
@@ -144,7 +145,7 @@ fn run_indexed(fasta_path: PathBuf, regions: Vec<Region>, size: usize, output: O
     }
 
     for seq in vec_sequences.iter() {
-        update_table(&mut table_vec, seq, size);
+        update_table(&mut table_vec, seq, size, skip_ambiguous)?;
     }
 
     for (idx, count) in table_vec.iter().enumerate() {
@@ -157,7 +158,7 @@ fn run_indexed(fasta_path: PathBuf, regions: Vec<Region>, size: usize, output: O
     Ok(())
 }    
 
-fn run_unindexed (fasta_path: PathBuf, size: usize, output: Option<PathBuf>, table_size: usize, verbose: bool) -> Result<(), std::io::Error> {
+fn run_unindexed (fasta_path: PathBuf, size: usize, output: Option<PathBuf>, table_size: usize, verbose: bool, skip_ambiguous: bool) -> Result<(), std::io::Error> {
 // fn cte
 
     let mut total_count = TotalCount {
@@ -185,7 +186,7 @@ fn run_unindexed (fasta_path: PathBuf, size: usize, output: Option<PathBuf>, tab
         let mut table_vec: Vec<usize> = vec![0; table_size];
         let mut sequence_buf = Vec::new();
         let _ = fa.read_sequence(&mut sequence_buf)?;
-        update_table(&mut table_vec, &sequence_buf, size);
+        update_table(&mut table_vec, &sequence_buf, size, skip_ambiguous)?;
 
         let mut hash_table_string = FxHashMap::with_capacity_and_hasher(table_size, Default::default());
         
@@ -209,30 +210,49 @@ fn run_unindexed (fasta_path: PathBuf, size: usize, output: Option<PathBuf>, tab
     Ok(())
 }
 
-fn slice_to_index(kmer: &[u8]) -> usize {
+fn slice_to_index(kmer: &[u8], skip_ambiguous: bool) -> Result<Option<usize>, std::io::Error> {
     let mut hash_val = 0;
     let mut count = 0;
     for &byte in kmer.iter() {
         match byte {
-            65 => {
+            65 | 97 => { // A or a
                 hash_val = hash_val + 4_usize.pow(count) * 0
             }, 
-            67 => {
+            67 | 99 => { // C or c
                 hash_val = hash_val + 4_usize.pow(count) * 1
             },
-            71 => {
+            71 | 103=> { // G or g
                 hash_val = hash_val + 4_usize.pow(count) * 2
             },
-            84 => {
+            84 | 116 => { // T or t
                 hash_val = hash_val + 4_usize.pow(count) * 3
             },
+            78 | 110 => { // N or n
+                if skip_ambiguous {
+                    return Ok(None);
+                } else {
+                    return Err(std::io::Error::new(
+                        std::io::ErrorKind::InvalidData,
+                        format!("Ambiguous base 'N' found in k-mer. Use --skip-ambiguous to skip such k-mers.")
+                    ));
+                }
+            },
             _ => {
-                panic!("Invalid character in sequence");
+                // Handle other ambiguous IUPAC codes or invalid characters
+                if skip_ambiguous {
+                    return Ok(None);
+                } else {
+                    return Err(std::io::Error::new(
+                        std::io::ErrorKind::InvalidData,
+                        format!("Invalid or ambiguous character '{}' (byte {}) found in k-mer. Use --skip-ambiguous to skip such k-mers.", 
+                            byte as char, byte)
+                    ));
+                }
             }
         }
         count += 1;
     }
-    hash_val
+    Ok(Some(hash_val))
 }
 
 fn index_to_string(idx: usize, ksize: usize) -> String {
@@ -260,16 +280,23 @@ fn index_to_string(idx: usize, ksize: usize) -> String {
     kmer_string
 }
 
-fn update_table(table: &mut Vec<usize>, sequence_buf: &Vec<u8>, ksize: usize) -> () {
+fn update_table(table: &mut Vec<usize>, sequence_buf: &Vec<u8>, ksize: usize, skip_ambiguous: bool) -> Result<(), std::io::Error> {
     let mut cursor = 0;
     let mut cend = ksize;
     while cend <= sequence_buf.len() {
         let kmer: &[u8] = &sequence_buf[cursor..cend];
-        let seq_idx = slice_to_index(kmer);
-        table[seq_idx] += 1;
+        match slice_to_index(kmer, skip_ambiguous)? {
+            Some(seq_idx) => {
+                table[seq_idx] += 1;
+            },
+            None => {
+                // K-mer skipped (contains N or invalid character when skip_ambiguous is true)
+            }
+        }
         cursor += 1;
         cend += 1;
     }
+    Ok(())
 }
 
 fn serialize_to_json<T: Serialize>(json_path: Option<PathBuf>, obj: &T) -> () {

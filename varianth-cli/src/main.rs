@@ -60,6 +60,9 @@ struct KcountArgs {
     /// verbose flag
     #[arg(short='v', long)]
     verbose: bool,
+    /// Skip k-mers containing ambiguous bases (N or other IUPAC codes) instead of failing
+    #[arg(long)]
+    skip_ambiguous: bool,
 }
 
 fn main() {
@@ -79,7 +82,7 @@ fn main() {
             );
         },
         Commands::Kcount(args) => {
-            let rres = kmercount::run(args.fasta, args.size, args.regions, args.regions_file, args.output, args.table_size, args.verbose);
+            let rres = kmercount::run(args.fasta, args.size, args.regions, args.regions_file, args.output, args.table_size, args.verbose, args.skip_ambiguous);
             match rres {
                 Ok(_) => {},
                 Err(e) => {
