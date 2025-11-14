@@ -1,0 +1,32 @@
+# Use a Docker image with Rust pre-installed
+image: "rust:latest"
+
+# Define the stages of the CI pipeline
+stages:
+  - build
+
+# Define the build job for the Linux binary
+build_linux_binary:
+  stage: build
+  
+  # This section ensures the necessary Cargo cache is saved and restored 
+  # for faster subsequent builds.
+  cache:
+    key: "$CI_COMMIT_REF_SLUG"
+    paths:
+      - target/
+      - .cargo/
+  
+  script:
+    - cargo build --release
+
+  # Define the artifacts to be saved and downloadable from the job.
+  artifacts:
+    when: on_success
+    paths:
+      # Specify the path to the renamed binary
+      - target/release/varianth
+    
+    # Optionally, you can rename the downloaded ZIP file that contains the artifacts
+    name: "varianth-linux-$CI_COMMIT_SHORT_SHA"
+    expire_in: 1 week
