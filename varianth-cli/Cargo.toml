@@ -8,6 +8,7 @@ edition = "2021"
 [dependencies]
 clap = { version = "4.5.6", features = ["derive"] }
 context = { version = "0.1.0", path = "../context" }
+vep2table = { version = "0.1.0", path = "../vep2table"}
 log = "0.4.21"
 noodles = { version = "0.76.0", features = ["fasta", "core", "vcf"] }
 regex = "1.10.4"

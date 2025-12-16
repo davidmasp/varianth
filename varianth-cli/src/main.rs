@@ -3,6 +3,7 @@ mod cmd;
 
 use cmd::ms;
 use cmd::kmercount;
+use cmd::vep2table;
 
 // LOGS
 use simplelog;
@@ -26,6 +27,7 @@ enum Commands {
     /// Adds files to myapp
     Ms(MsArgs),
     Kcount(KcountArgs),
+    Vep2table(Vep2tableArgs),
 }
 
 #[derive(Args)]
@@ -65,6 +67,16 @@ struct KcountArgs {
     skip_ambiguous: bool,
 }
 
+#[derive(Args)]
+struct Vep2tableArgs {
+    #[arg(short='i', long)]
+    input: PathBuf,
+    #[arg(short='o', long)]
+    output: PathBuf,
+}
+
+
+
 fn main() {
 
     let _ = simplelog::SimpleLogger::init(simplelog::LevelFilter::Info, simplelog::Config::default());
@@ -89,6 +101,9 @@ fn main() {
                     error!("Error: {}", e);
                 }
             }
+        },
+        Commands::Vep2table(args) => {
+            vep2table::run(args.input, args.output);
         }
     }
 }
