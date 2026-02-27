@@ -79,8 +79,6 @@ struct Vep2tableArgs {
 
 #[derive(Args)]
 struct G2pArgs {
-    #[arg(long)]
-    column_id: String,
     #[arg(long, default_value = "MANE.GRCh38.v1.4.ensembl_genomic.gff.gz")]
     gff_path: String,
     #[arg(long, default_value = "genome.fa")]
@@ -125,7 +123,6 @@ fn main() {
         },
         Commands::G2p(args) => {
             g2p::run(
-                args.column_id,
                 args.gff_path,
                 args.genome_fasta_path,
                 args.proteome_fasta_path,

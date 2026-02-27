@@ -3,6 +3,7 @@
 use std::{collections::HashSet};
 use std::fs::File;
 use std::io::{BufWriter, Write};
+use std::path::Path;
 use std::sync::mpsc;
 
 pub mod gff;
@@ -28,6 +29,13 @@ pub fn g2p_run(
     thread_number: usize,
 ) {
     let output_path = output_path.to_string();
+    let output_dir = Path::new(&output_path).parent();
+    if let Some(dir) = output_dir {
+        if !dir.is_dir() {
+            log::error!("Output directory does not exist: {}", dir.display());
+            std::process::exit(1);
+        }
+    }
 
     ThreadPoolBuilder::new()
         .num_threads(thread_number)
@@ -69,10 +77,14 @@ pub fn g2p_run(
     let writer_handle = std::thread::spawn(move || -> std::io::Result<()> {
         let out_file = File::create(output_path)?;
         let mut writer = BufWriter::new(out_file);
+        /*
+        this is a bit of a mess for soprting the file later so maybe
+        better we just get rid of the headers.
         writeln!(
             writer,
             "chr\tgenome_position\tref_dna\talt_dna\tprotein_id\tref_aa\tprotein_position\talt_aa\tincodon_position"
         )?;
+        */
         for lines in rx {
             for line in lines {
                 writeln!(writer, "{}", line)?;
