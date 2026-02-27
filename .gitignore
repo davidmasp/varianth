@@ -12,3 +12,8 @@ test.out
 *.fa
 *.vcf.gz.tbi
 *.fai
+
+*.tsv.gz
+*.tsv.gz.tbi
+*.gff.gz
+*.faa

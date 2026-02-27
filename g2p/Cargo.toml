@@ -1,0 +1,13 @@
+[package]
+name = "g2p"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+bstr = "1.12.1"
+env_logger = "0.11.9"
+flate2 = "1.1.9"
+log = "0.4.29"
+# weirdly the gff from noodles is not working...
+noodles = { version = "0.106.0", features = ["core", "fasta"] }
+rayon = "1.11.0"

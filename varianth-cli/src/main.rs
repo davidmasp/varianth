@@ -4,6 +4,7 @@ mod cmd;
 use cmd::ms;
 use cmd::kmercount;
 use cmd::vep2table;
+use cmd::g2p;
 
 // LOGS
 use simplelog;
@@ -28,6 +29,7 @@ enum Commands {
     Ms(MsArgs),
     Kcount(KcountArgs),
     Vep2table(Vep2tableArgs),
+    G2p(G2pArgs),
 }
 
 #[derive(Args)]
@@ -75,7 +77,23 @@ struct Vep2tableArgs {
     output: PathBuf,
 }
 
-
+#[derive(Args)]
+struct G2pArgs {
+    #[arg(long)]
+    column_id: String,
+    #[arg(long, default_value = "MANE.GRCh38.v1.4.ensembl_genomic.gff.gz")]
+    gff_path: String,
+    #[arg(long, default_value = "genome.fa")]
+    genome_fasta_path: String,
+    #[arg(long, default_value = "MANE.GRCh38.v1.4.ensembl_protein.faa")]
+    proteome_fasta_path: String,
+    #[arg(long)]
+    debug_flag: Option<usize>,
+    #[arg(long, default_value = "tables/all_mutations.tsv")]
+    output_path: String,
+    #[arg(long, default_value_t = 8)]
+    thread_number: usize,
+}
 
 fn main() {
 
@@ -104,6 +122,17 @@ fn main() {
         },
         Commands::Vep2table(args) => {
             vep2table::run(args.input, args.output);
+        },
+        Commands::G2p(args) => {
+            g2p::run(
+                args.column_id,
+                args.gff_path,
+                args.genome_fasta_path,
+                args.proteome_fasta_path,
+                args.debug_flag,
+                args.output_path,
+                args.thread_number,
+            );
         }
     }
 }
