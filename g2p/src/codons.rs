@@ -192,6 +192,10 @@ pub enum CodonError {
     InconsistentStrand {
         protein_id: String,
     },
+    MissingReferenceSequence {
+        protein_id: String,
+        seqid: String,
+    },
 }
 
 impl std::fmt::Display for CodonError {
@@ -217,6 +221,12 @@ impl std::fmt::Display for CodonError {
             CodonError::InconsistentStrand { protein_id } => write!(
                 f,
                 "Inconsistent strand information for protein_id {}",
+                protein_id
+            ),
+            CodonError::MissingReferenceSequence { protein_id, seqid } => write!(
+                f,
+                "Reference sequence '{}' not found in genome FASTA for protein_id {}",
+                seqid,
                 protein_id
             ),
         }

@@ -41,7 +41,10 @@ pub fn g2pflow(
             let cds_region = Region::new(cds.seqid.clone(), start_pos..=end_pos);
             let cds_sequence = fasta_reader_genome
                 .query(&cds_region)
-                .expect("failed to query genome sequence");
+                .map_err(|_| CodonError::MissingReferenceSequence {
+                    protein_id: pid.to_string(),
+                    seqid: cds.seqid.to_string(),
+                })?;
             let dna_seq = cds_sequence.sequence().as_ref().to_vec();
             let gpos = (cds.start..=cds.end)
                 .collect::<Vec<usize>>();
@@ -50,9 +53,9 @@ pub fn g2pflow(
                 gpos.len(),
                 "length of extracted DNA sequence does not match genomic position range"
             );
-            (dna_seq, gpos)
+            Ok((dna_seq, gpos))
         })
-        .collect();
+        .collect::<Result<Vec<_>, CodonError>>()?;
 
     // once we have the full sequence we can do the reverse complement if needed.
     let full_cds_sequence_vec = cds_extracted_info.iter()
