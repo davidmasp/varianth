@@ -25,7 +25,9 @@ pub fn g2pflow(
     let unique_strand = cds_vec.first().map(|cds| cds.strand.clone());
     if let Some(ref strand) = unique_strand {
         if cds_vec.iter().any(|cds| cds.strand != *strand) {
-            panic!("Inconsistent strand information for protein_id {}", pid);
+            return Err(CodonError::InconsistentStrand {
+                protein_id: pid.to_string(),
+            });
         }
     }
     log::debug!("{}: unique strand: {:?}", pid, unique_strand);

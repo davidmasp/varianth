@@ -7,16 +7,14 @@ pub fn run(
     genome_fasta_path: String,
     proteome_fasta_path: String,
     debug_flag: Option<usize>,
-    output_path: String,
-    thread_number: usize,
+    output_prefix: String,
 ) {
     g2p_run(
         &gff_path,
         &genome_fasta_path,
         &proteome_fasta_path,
         debug_flag,
-        &output_path,
-        thread_number,
+        &output_prefix,
     );
 }
 

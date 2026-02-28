@@ -87,10 +87,8 @@ struct G2pArgs {
     proteome_fasta_path: String,
     #[arg(long)]
     debug_flag: Option<usize>,
-    #[arg(long, default_value = "tables/all_mutations.tsv")]
-    output_path: String,
-    #[arg(long, default_value_t = 8)]
-    thread_number: usize,
+    #[arg(long, default_value = "tables/all_mutations")]
+    output_prefix: String,
 }
 
 fn main() {
@@ -127,8 +125,7 @@ fn main() {
                 args.genome_fasta_path,
                 args.proteome_fasta_path,
                 args.debug_flag,
-                args.output_path,
-                args.thread_number,
+                args.output_prefix,
             );
         }
     }

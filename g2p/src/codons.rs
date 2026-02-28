@@ -189,6 +189,9 @@ pub enum CodonError {
         expected: char,
         found: char,
     },
+    InconsistentStrand {
+        protein_id: String,
+    },
 }
 
 impl std::fmt::Display for CodonError {
@@ -210,6 +213,11 @@ impl std::fmt::Display for CodonError {
                 position,
                 expected,
                 found
+            ),
+            CodonError::InconsistentStrand { protein_id } => write!(
+                f,
+                "Inconsistent strand information for protein_id {}",
+                protein_id
             ),
         }
     }
