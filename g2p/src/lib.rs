@@ -6,6 +6,7 @@ use std::io::{BufWriter, Write};
 use std::path::Path;
 use std::time::Instant;
 
+use indicatif::{ProgressBar, ProgressStyle};
 use serde::Serialize;
 
 pub mod gff;
@@ -89,6 +90,15 @@ pub fn g2p_run(
 
     let start = Instant::now();
 
+    let pb = ProgressBar::new(total_proteins as u64);
+    pb.set_style(
+        ProgressStyle::with_template(
+            "{spinner:.green} [{elapsed_precise}] [{wide_bar:.cyan/blue}] {pos}/{len} ({per_sec}, ETA {eta})"
+        )
+        .expect("failed to parse progress bar template")
+        .progress_chars("#>-"),
+    );
+
     for pid in &proteome_keys_input {
         let cds_vec = proteome.get_cloned(pid).expect("Error in internal GFF object.");
         log::debug!("{}: {} CDS records", pid, cds_vec.len());
@@ -110,7 +120,9 @@ pub fn g2p_run(
                 failed_errors.insert(pid.clone(), e.to_string());
             }
         }
+        pb.inc(1);
     }
+    pb.finish_with_message("done");
 
     writer.flush().expect("failed to flush output TSV file");
 
