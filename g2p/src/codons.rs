@@ -3,106 +3,55 @@
 
 use crate::gff::Strand;
 
-use std::collections::HashMap;
 use bstr::{BString, ByteSlice};
 
-// this is somehow trying to mimic Biostrings::GENETIC_CODE from R
-struct HumanGeneticCode {
-    codon_map: HashMap<BString, BString>,
-    alt_init_codons: Vec<BString>,
-}
+const VALID_DNA: [u8; 4] = [b'A', b'C', b'G', b'T'];
 
-impl HumanGeneticCode {
-    fn new() -> Self {
-        let codon_map = generate_codon_map();
-        // ALT start codons are only used if they are in the first position of the CDS, and they code for Methionine (M) instead of their usual amino acid.
-        // see https://www.tandfonline.com/doi/full/10.4161/trla.28387#d1e583
-        let alt_init_codons = vec![BString::from("TTG"), BString::from("CTG"),  BString::from("GTG")];
-        HumanGeneticCode {
-            codon_map,
-            alt_init_codons,
-        }
-    }
-    fn translate_codon(&self, codon: &BString, prot_position: &usize) -> Option<u8> {
-        if *prot_position == 1 {
-            if self.alt_init_codons.contains(codon) {
-                Some(b'M')
-            } else {
-                self.codon_map.get(codon).map(|aa| aa[0])
-            }
-        } else {
-            self.codon_map.get(codon).map(|aa| aa[0])
-        }
+// Dense 64-entry standard genetic code lookup with A/C/G/T => 0/1/2/3 encoding.
+const CODON_TABLE: [u8; 64] = [
+    b'K', b'N', b'K', b'N', b'T', b'T', b'T', b'T', b'R', b'S', b'R', b'S', b'I', b'I', b'M',
+    b'I', b'Q', b'H', b'Q', b'H', b'P', b'P', b'P', b'P', b'R', b'R', b'R', b'R', b'L', b'L',
+    b'L', b'L', b'E', b'D', b'E', b'D', b'A', b'A', b'A', b'A', b'G', b'G', b'G', b'G', b'V',
+    b'V', b'V', b'V', b'*', b'Y', b'*', b'Y', b'S', b'S', b'S', b'S', b'*', b'C', b'W', b'C',
+    b'L', b'F', b'L', b'F',
+];
+
+#[inline]
+fn base_to_bits(base: u8) -> Option<usize> {
+    match base {
+        b'A' | b'a' => Some(0),
+        b'C' | b'c' => Some(1),
+        b'G' | b'g' => Some(2),
+        b'T' | b't' => Some(3),
+        _ => None,
     }
 }
 
-fn generate_codon_map() -> HashMap<BString, BString> {
-    let mut codon_map = HashMap::new();
-    codon_map.insert(BString::from("AAA"), BString::from("K"));
-    codon_map.insert(BString::from("AAC"), BString::from("N"));
-    codon_map.insert(BString::from("AAG"), BString::from("K"));
-    codon_map.insert(BString::from("AAT"), BString::from("N"));
-    codon_map.insert(BString::from("ACA"), BString::from("T"));
-    codon_map.insert(BString::from("ACC"), BString::from("T"));
-    codon_map.insert(BString::from("ACG"), BString::from("T"));
-    codon_map.insert(BString::from("ACT"), BString::from("T"));
-    codon_map.insert(BString::from("AGA"), BString::from("R"));
-    codon_map.insert(BString::from("AGC"), BString::from("S"));
-    codon_map.insert(BString::from("AGG"), BString::from("R"));
-    codon_map.insert(BString::from("AGT"), BString::from("S"));
-    codon_map.insert(BString::from("ATA"), BString::from("I"));
-    codon_map.insert(BString::from("ATC"), BString::from("I"));
-    codon_map.insert(BString::from("ATG"), BString::from("M"));
-    codon_map.insert(BString::from("ATT"), BString::from("I"));
-    codon_map.insert(BString::from("CAA"), BString::from("Q"));
-    codon_map.insert(BString::from("CAC"), BString::from("H"));
-    codon_map.insert(BString::from("CAG"), BString::from("Q"));
-    codon_map.insert(BString::from("CAT"), BString::from("H"));
-    codon_map.insert(BString::from("CCA"), BString::from("P"));
-    codon_map.insert(BString::from("CCC"), BString::from("P"));
-    codon_map.insert(BString::from("CCG"), BString::from("P"));
-    codon_map.insert(BString::from("CCT"), BString::from("P"));
-    codon_map.insert(BString::from("CGA"), BString::from("R"));
-    codon_map.insert(BString::from("CGC"), BString::from("R"));
-    codon_map.insert(BString::from("CGG"), BString::from("R"));
-    codon_map.insert(BString::from("CGT"), BString::from("R"));
-    codon_map.insert(BString::from("CTA"), BString::from("L"));
-    codon_map.insert(BString::from("CTC"), BString::from("L"));
-    codon_map.insert(BString::from("CTG"), BString::from("L"));
-    codon_map.insert(BString::from("CTT"), BString::from("L"));
-    codon_map.insert(BString::from("GAA"), BString::from("E"));
-    codon_map.insert(BString::from("GAC"), BString::from("D"));
-    codon_map.insert(BString::from("GAG"), BString::from("E"));
-    codon_map.insert(BString::from("GAT"), BString::from("D"));
-    codon_map.insert(BString::from("GCA"), BString::from("A"));
-    codon_map.insert(BString::from("GCC"), BString::from("A"));
-    codon_map.insert(BString::from("GCG"), BString::from("A"));
-    codon_map.insert(BString::from("GCT"), BString::from("A"));
-    codon_map.insert(BString::from("GGA"), BString::from("G"));
-    codon_map.insert(BString::from("GGC"), BString::from("G"));
-    codon_map.insert(BString::from("GGG"), BString::from("G"));
-    codon_map.insert(BString::from("GGT"), BString::from("G"));
-    codon_map.insert(BString::from("GTA"), BString::from("V"));
-    codon_map.insert(BString::from("GTC"), BString::from("V"));
-    codon_map.insert(BString::from("GTG"), BString::from("V"));
-    codon_map.insert(BString::from("GTT"), BString::from("V"));
-    codon_map.insert(BString::from("TAA"), BString::from("*"));
-    codon_map.insert(BString::from("TAC"), BString::from("Y"));
-    codon_map.insert(BString::from("TAG"), BString::from("*"));
-    codon_map.insert(BString::from("TAT"), BString::from("Y"));
-    codon_map.insert(BString::from("TCA"), BString::from("S"));
-    codon_map.insert(BString::from("TCC"), BString::from("S"));
-    codon_map.insert(BString::from("TCG"), BString::from("S"));
-    codon_map.insert(BString::from("TCT"), BString::from("S"));
-    codon_map.insert(BString::from("TGA"), BString::from("*"));
-    codon_map.insert(BString::from("TGC"), BString::from("C"));
-    codon_map.insert(BString::from("TGG"), BString::from("W"));
-    codon_map.insert(BString::from("TGT"), BString::from("C"));
-    codon_map.insert(BString::from("TTA"), BString::from("L"));
-    codon_map.insert(BString::from("TTC"), BString::from("F"));
-    codon_map.insert(BString::from("TTG"), BString::from("L"));
-    codon_map.insert(BString::from("TTT"), BString::from("F"));
-    codon_map
+#[inline]
+fn codon_to_index(c0: u8, c1: u8, c2: u8) -> Option<usize> {
+    let b0 = base_to_bits(c0)?;
+    let b1 = base_to_bits(c1)?;
+    let b2 = base_to_bits(c2)?;
+    Some((b0 << 4) | (b1 << 2) | b2)
+}
+
+#[inline]
+fn is_alt_start_codon(c0: u8, c1: u8, c2: u8) -> bool {
+    ((c0 == b'T' || c0 == b't') && (c1 == b'T' || c1 == b't') && (c2 == b'G' || c2 == b'g'))
+        || ((c0 == b'C' || c0 == b'c')
+            && (c1 == b'T' || c1 == b't')
+            && (c2 == b'G' || c2 == b'g'))
+        || ((c0 == b'G' || c0 == b'g')
+            && (c1 == b'T' || c1 == b't')
+            && (c2 == b'G' || c2 == b'g'))
+}
+
+#[inline]
+fn translate_codon(c0: u8, c1: u8, c2: u8, prot_position: usize) -> Option<u8> {
+    if prot_position == 1 && is_alt_start_codon(c0, c1, c2) {
+        return Some(b'M');
+    }
+    codon_to_index(c0, c1, c2).map(|idx| CODON_TABLE[idx])
 }
 
 
@@ -258,15 +207,12 @@ impl NonSynonymousMutation {
 }
 
 pub fn expand_codons_from_sequence(
-    genome_pos: Vec<usize>,
-    dna_seq: BString,
-    protein_seq: BString,
+    genome_pos: &[usize],
+    dna_seq: &[u8],
+    protein_seq: &[u8],
 ) -> Result<Vec<NonSynonymousMutation>, CodonError> {
-
-    let mut generated_mutations: Vec<NonSynonymousMutation> = Vec::new();
-    // here the protein_position needs to be /3 size the seq length.
-    let genetic_code = HumanGeneticCode::new();
-    let valid_dna = vec![b'A', b'C', b'G', b'T'];
+    let mut generated_mutations: Vec<NonSynonymousMutation> =
+        Vec::with_capacity(protein_seq.len().saturating_mul(6));
 
     if dna_seq.len() / 3 != protein_seq.len() + 1 {
         return Err(CodonError::DnaProteinLengthMismatch {
@@ -275,68 +221,100 @@ pub fn expand_codons_from_sequence(
         });
     }
 
-    let dna_chunks = dna_seq.chunks(3).take(protein_seq.len());
-    let pos_chunks = genome_pos.chunks(3).take(protein_seq.len());
+    // This consumes all codons except the trailing stop codon.
+    for codon_idx in 0..protein_seq.len() {
+        let prot_position = codon_idx + 1; // 1-based protein coordinate
+        let offset = codon_idx * 3;
 
-    let input_triple_zip: Vec<(&[u8], char, &[usize])> = dna_chunks
-        .zip(protein_seq.chars())
-        .zip(pos_chunks)
-        .map(|((codon, aa), pos)| (codon, aa, pos))
-        .collect::<Vec<_>>();
-    
-    // this .take(protein_seq.len() 
-    // takes all codons but the last one, which is the stop codon.
-    for (pos_idx, (dna_codon, aa, position_codon)) in input_triple_zip.iter().enumerate() {
-            let aa = *aa as u8;
-            let cdn_bstr = BString::from(*dna_codon);
-            let cdn_pos: Vec<usize> = position_codon.to_vec();
-            let pos = pos_idx + 1; // 1-based protein coordinate
-            let wt_cdn_aa =  genetic_code.translate_codon(&cdn_bstr, &pos).unwrap();
-            
-            if wt_cdn_aa != aa {
-                return Err(CodonError::ReferenceAminoAcidMismatch {
-                    position: pos,
-                    expected: aa as char,
-                    found: wt_cdn_aa as char,
-                });
-            }
-            
-            for i in 0..3 {
-                for k in &valid_dna {
-                    if dna_codon[i] != *k {
-                        let mut cdn_to_modify = dna_codon.to_vec();
-                        cdn_to_modify[i] = *k;
-                        let cdn_mut_bstr = BString::from(cdn_to_modify);
-                        let new_aa = genetic_code
-                            .translate_codon(&cdn_mut_bstr, &pos)
-                            .unwrap();
-                        if new_aa != aa {
-                            // this includes both the missense and nonsense mutations, but not the synonymous ones.
-                            
-                            // pos is the position in the protein
-                            // i is the position in the codon (0, 1, or 2), aka phase
-                            // k is the ALT new nucleotide
-                            // new_aa is the new amino acid after the mutation
-                            // wt_cdn_aa is the original aa
+        let c0 = dna_seq[offset];
+        let c1 = dna_seq[offset + 1];
+        let c2 = dna_seq[offset + 2];
+        let aa = protein_seq[codon_idx];
 
-                            // in codon position of phase is 0 based
-                            let mut_ns = NonSynonymousMutation::new(
-                                pos,
-                                i,
-                                cdn_pos[i],
-                                dna_codon[i] as char,
-                                *k as char,
-                                wt_cdn_aa as char,
-                                new_aa as char,
-                            );
-                            generated_mutations.push(mut_ns);
-                        }
-                    } else {
-                        // this does nothing
-                    }
-                }
-            } // end of the loop per codon
+        let wt_cdn_aa =
+            translate_codon(c0, c1, c2, prot_position).expect("invalid codon in DNA sequence");
+        if wt_cdn_aa != aa {
+            return Err(CodonError::ReferenceAminoAcidMismatch {
+                position: prot_position,
+                expected: aa as char,
+                found: wt_cdn_aa as char,
+            });
         }
-        Ok(generated_mutations)
+
+        let codon_positions = [genome_pos[offset], genome_pos[offset + 1], genome_pos[offset + 2]];
+        let ref_codon = [c0, c1, c2];
+
+        for i in 0..3 {
+            for alt_base in VALID_DNA {
+                if ref_codon[i] == alt_base {
+                    continue;
+                }
+
+                let mut mutated = ref_codon;
+                mutated[i] = alt_base;
+                let new_aa = translate_codon(mutated[0], mutated[1], mutated[2], prot_position)
+                    .expect("invalid codon generated during mutation expansion");
+                if new_aa != aa {
+                    generated_mutations.push(NonSynonymousMutation::new(
+                        prot_position,
+                        i,
+                        codon_positions[i],
+                        ref_codon[i] as char,
+                        alt_base as char,
+                        wt_cdn_aa as char,
+                        new_aa as char,
+                    ));
+                }
+            }
+        }
+    }
+    Ok(generated_mutations)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn translate_standard_codon_works() {
+        assert_eq!(translate_codon(b'A', b'T', b'G', 4), Some(b'M'));
+        assert_eq!(translate_codon(b'T', b'A', b'A', 4), Some(b'*'));
     }
 
+    #[test]
+    fn translate_alt_start_only_at_position_one() {
+        assert_eq!(translate_codon(b'T', b'T', b'G', 1), Some(b'M'));
+        assert_eq!(translate_codon(b'T', b'T', b'G', 2), Some(b'L'));
+    }
+
+    #[test]
+    fn expand_returns_reference_mismatch() {
+        let genome_pos = [1, 2, 3, 4, 5, 6];
+        let dna_seq = b"ATGTAA";
+        let protein_seq = b"A";
+
+        match expand_codons_from_sequence(&genome_pos, dna_seq, protein_seq) {
+            Err(CodonError::ReferenceAminoAcidMismatch {
+                position,
+                expected,
+                found,
+            }) => {
+                assert_eq!(position, 1);
+                assert_eq!(expected, 'A');
+                assert_eq!(found, 'M');
+            }
+            Ok(_) => panic!("expected reference amino acid mismatch"),
+            Err(_) => panic!("unexpected error variant"),
+        }
+    }
+
+    #[test]
+    fn expand_emits_nonsynonymous_mutations() {
+        let genome_pos = [1, 2, 3, 4, 5, 6];
+        let dna_seq = b"ATGTAA";
+        let protein_seq = b"M";
+
+        let mutations = expand_codons_from_sequence(&genome_pos, dna_seq, protein_seq).unwrap();
+        assert!(!mutations.is_empty());
+    }
+}

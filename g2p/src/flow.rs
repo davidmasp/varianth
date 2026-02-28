@@ -91,7 +91,7 @@ pub fn g2pflow(
         .expect("failed to pull protein sequence from FASTA");
 
     let mutation_list_raw: Vec<NonSynonymousMutation> =
-        expand_codons_from_sequence(full_gpos, full_cds_sequence, BString::from(prot_seq))?;
+        expand_codons_from_sequence(&full_gpos, full_cds_sequence.as_ref(), &prot_seq)?;
 
     let mutation_list: MutationList = MutationList::new(
         mutation_list_raw,
