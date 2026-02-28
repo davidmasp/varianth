@@ -3,20 +3,22 @@
 
 pub use crate::codons::{CodonError, NonSynonymousMutation, expand_codons_from_sequence, MutationList};
 pub use crate::gff::{collect_cds_by_protein_id, GffReader, GffRecord, Strand};
-pub use crate::fasta::{open_indexed_fasta, pull_entire_record, sequence_count, sequence_ids, reverse_complement};
+pub use crate::fasta::{pull_entire_record, reverse_complement};
 
 use noodles::core::{Region, Position};
+use noodles::fasta;
+use noodles::fasta::fai;
 use bstr::BString;
+use std::fs::File;
+use std::io::BufReader;
 
 pub fn g2pflow(
-    pid: &String,
+    pid: &str,
     mut cds_vec: Vec<GffRecord>,
-    genome_fasta_path: &str,
-    proteome_fasta_path: &str,
+    genome_reader: &mut fasta::io::IndexedReader<BufReader<File>>,
+    proteome_reader: &mut fasta::io::IndexedReader<BufReader<File>>,
+    proteome_index: &fai::Index,
 ) -> Result<MutationList, CodonError> {
-
-    // here i initialize the fasta reader
-    let mut fasta_reader_genome = open_indexed_fasta(genome_fasta_path, None::<&str>);
 
     // I am pretty sure this should be sorted already.
     cds_vec.sort_by_key(|cds| cds.start);
@@ -39,7 +41,7 @@ pub fn g2pflow(
                 Position::try_from(cds.start).expect("failed to convert start position");
             let end_pos = Position::try_from(cds.end).expect("failed to convert end position");
             let cds_region = Region::new(cds.seqid.clone(), start_pos..=end_pos);
-            let cds_sequence = fasta_reader_genome
+            let cds_sequence = genome_reader
                 .query(&cds_region)
                 .map_err(|_| CodonError::MissingReferenceSequence {
                     protein_id: pid.to_string(),
@@ -84,12 +86,8 @@ pub fn g2pflow(
         None => panic!("Missing strand information for protein_id {}", pid),
     }
 
-    // the reason we do this here again is because we can paralellize faster
-    let mut fasta_reader_proteins_instance = open_indexed_fasta(proteome_fasta_path, None::<&str>);
-    let protein_index_instance = fasta_reader_proteins_instance.index().clone();
-
     // and we here need to pull the third element of the main function, the protein sequence
-    let prot_seq = pull_entire_record(&mut fasta_reader_proteins_instance, &protein_index_instance, pid)
+    let prot_seq = pull_entire_record(proteome_reader, proteome_index, pid)
         .expect("failed to pull protein sequence from FASTA");
 
     let mutation_list_raw: Vec<NonSynonymousMutation> =
@@ -104,4 +102,3 @@ pub fn g2pflow(
     Ok(mutation_list)
 
 }
-

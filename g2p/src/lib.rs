@@ -50,8 +50,8 @@ pub fn g2p_run(
     }
 
     // fai derived automatically from genome_fasta_path + ".fai"
-    let fasta_reader_proteins = open_indexed_fasta(proteome_fasta_path, None::<&str>);
-    let _protein_index = fasta_reader_proteins.index().clone();
+    let mut fasta_reader_proteins = open_indexed_fasta(proteome_fasta_path, None::<&str>);
+    let protein_index = fasta_reader_proteins.index().clone();
     let seq_count = sequence_count(&fasta_reader_proteins);
     log::info!("Number of sequences in proteome FASTA: {}", seq_count);
 
@@ -87,6 +87,7 @@ pub fn g2p_run(
 
     let out_file = File::create(&tsv_path).expect("failed to create output TSV file");
     let mut writer = BufWriter::new(out_file);
+    let mut fasta_reader_genome = open_indexed_fasta(genome_fasta_path, None::<&str>);
 
     let start = Instant::now();
 
@@ -104,7 +105,13 @@ pub fn g2p_run(
         log::debug!("{}: {} CDS records", pid, cds_vec.len());
 
         let pid_mutation_list_result =
-            g2pflow(pid, cds_vec, genome_fasta_path, proteome_fasta_path);
+            g2pflow(
+                pid,
+                cds_vec,
+                &mut fasta_reader_genome,
+                &mut fasta_reader_proteins,
+                &protein_index,
+            );
 
         match pid_mutation_list_result {
             Ok(ml) => {
@@ -156,6 +163,5 @@ pub fn g2p_run(
         json_path,
     );
 }
-
 
 
