@@ -1,19 +1,31 @@
 # varianth - collection for VARIANT Helpers
 
 This is a growing, actively developed and opinionated collection of
-Rust tools and libraries aiming at helping the analyzing genomic variant sites.
+small rust tools and libraries aiming at *helping* in the analysis of genomic
+variant sites.
 
-_Pronounced like "tenth" (with final θ)_
+Pronounced like "*tenth*" (with final θ).
 
-⚠️ **This is experimental development** - APIs and functionality may change.
+⚠️ **This software is in experimental development and distributed as-is**.
 
 This project relies heavily on [noodles](https://github.com/zaeleus/noodles) for genomic file format handling.
 
 ## Overview
 
 This workspace contains multiple crates providing utilities for variant analysis:
-- **varianth-cli**: Main command-line interface (active development)
+
+- **varianth-cli**: Main command-line interface
 - **varianth-core**: Core data structures and utilities
+
+Distinct commands:
+
+- **ms**: Adds mutation subtype annotation to vcf (only for SNVs)
+- **vep2table**: Utility to transform the CSQ annotation from VEP into a table
+- **kmercounts**: counts kmers in selected genomic region.
+- **g2p**: From an annotation file, creates all possible DNA mutations and its associated protein equivalents.
+
+Other legacy components:
+
 - **context**: Mutation subtype annotation functionality
 - **hvariant**: Legacy BAM/VCF analysis tools (deprecated, being migrated)
 - **mpileup-rs**: Rust implementation of mpileup functionality (in development)
@@ -32,15 +44,13 @@ cargo install --git https://github.com/davidmasp/varianth --bin varianth
 
 ```bash
 git clone https://github.com/davidmasp/varianth
-cd varianth
-cargo build --release
+cd varianth/varianth-cli
+cargo install -path .
 ```
-
-The main binary will be available at `target/release/varianth`.
 
 ---
 
-## ✅ Ready to Use (via `varianth` CLI)
+## Usage (via `varianth` CLI)
 
 These commands are fully functional and available through the `varianth` CLI:
 
@@ -49,6 +59,7 @@ These commands are fully functional and available through the `varianth` CLI:
 Annotates VCF files with mutation subtype information (e.g., trinucleotide context) by extracting k-mer context around each variant from a reference genome.
 
 **Usage:**
+
 ```bash
 varianth ms \
   --fasta genome.fa \
@@ -60,6 +71,7 @@ varianth ms \
 ```
 
 **Parameters:**
+
 - `-g, --fasta`: Reference genome FASTA file (must be indexed)
 - `-i, --variants`: Input VCF file (must be indexed)
 - `-o, --output`: Output VCF file
@@ -72,6 +84,7 @@ varianth ms \
 Fast k-mer counting from FASTA files with optional region-based filtering.
 
 **Usage:**
+
 ```bash
 varianth kcount \
   --size 7 \
@@ -81,6 +94,7 @@ varianth kcount \
 ```
 
 **Parameters:**
+
 - `-K, --size`: K-mer size
 - `-S, --table-size`: Hash table size (optional, for optimization)
 - `-r, --regions`: Region string for filtering (e.g., "chr1:1000-2000")
@@ -89,12 +103,72 @@ varianth kcount \
 - `-v, --verbose`: Enable verbose output
 
 **Benchmarking:**
+
 ```bash
 # Example comparison with jellyfish
 hyperfine -m 5 --parameter-scan KMER 5 8 --warmup 2 \
   -n "jellyfish" "jellyfish count -m {KMER} -s 100M -t 1 genome.fa" \
   -n "varianth" "varianth kcount -K {KMER} genome.fa -o test.json"
 ```
+
+### `vep2table` - Expand VEP CSQ Annotations to Table
+
+Converts VCF records annotated with VEP (`INFO/CSQ`) into a pipe-delimited flat table, creating one output row per CSQ entry.
+
+**Usage:**
+
+```bash
+varianth vep2table \
+  --input input.vep.vcf.gz \
+  --output output.tsv
+```
+
+**Parameters:**
+
+- `-i, --input`: Input VCF/VCF.GZ file containing `CSQ` annotations
+- `-o, --output`: Output table file
+
+**Output:**
+
+- Header starts with `chrom|pos|ref|alt|` followed by the VEP CSQ `Format:` fields from the VCF header
+- One row is emitted for each CSQ annotation entry in a variant record
+
+**Current assumptions/limitations:**
+
+- Expects `INFO/CSQ` to be present and declared with a `Format:` section in the VCF header
+- Expects exactly one ALT allele per record
+
+### `g2p` - Genome-to-Protein Nonsynonymous Mutation Expansion
+
+Generates all possible nonsynonymous single-nucleotide substitutions for coding sequences by combining genome FASTA, proteome FASTA, and CDS records from GFF.
+
+**Usage:**
+
+```bash
+varianth g2p \
+  --gff-path MANE.GRCh38.v1.4.ensembl_genomic.gff.gz \
+  --genome-fasta-path genome.fa \
+  --proteome-fasta-path MANE.GRCh38.v1.4.ensembl_protein.faa \
+  --output-prefix tables/all_mutations
+```
+
+**Parameters:**
+
+- `--gff-path`: Input GFF with CDS/protein mappings (default: `MANE.GRCh38.v1.4.ensembl_genomic.gff.gz`)
+- `--genome-fasta-path`: Indexed genome FASTA path (default: `genome.fa`)
+- `--proteome-fasta-path`: Indexed proteome FASTA path (default: `MANE.GRCh38.v1.4.ensembl_protein.faa`)
+- `--debug-flag`: Optional limit on number of proteins processed (useful for debugging)
+- `--output-prefix`: Prefix for outputs (default: `tables/all_mutations`)
+
+**Output:**
+
+- `<output-prefix>.tsv`: Nonsynonymous mutation table (columns: chromosome, genomic position, ref nt, alt nt, protein ID, ref aa, protein position, alt aa, codon position)
+- `<output-prefix>.json`: Run metrics (`total_proteins`, `successful_count`, `failed_count`, elapsed time, failed IDs/errors)
+
+**Notes:**
+
+- Output directory in `--output-prefix` must already exist
+- Reverse-strand CDS entries are handled with reverse complement logic before mutation expansion
 
 ---
 
@@ -109,6 +183,7 @@ A Rust reimplementation of samtools mpileup for generating pileup format from BA
 **Status:** Core functionality implemented but standalone binary only. Performance is currently ~24% slower than samtools (1.12s vs 0.90s on test data).
 
 **Current capabilities:**
+
 - Basic pileup generation with reference base
 - Quality filtering (mapping quality, base quality)
 - Flag-based read filtering
@@ -116,81 +191,17 @@ A Rust reimplementation of samtools mpileup for generating pileup format from BA
 
 **Usage (standalone binary):**
 
-🚨 TO INTEGRATE INTO VARIANTH
-
-## 📚 Legacy Tools (Being Migrated)
-
-The following tools exist in the `hvariant` crate but are deprecated and being migrated to the main `varianth` CLI:
-
-### `readinfo` - Variant Position in Reads Histogram
-
-**Note:** Currently only available in legacy `hvariant` binary (not built by default).
-
-Analyzes BAM files to generate histograms showing where variants appear within reads.
-
-**Legacy Usage:**
-```bash
-hvariant readinfo \
-  --reads sample.bam \
-  --variants variants.vcf.gz \
-  --outfile output.json
-```
-
-**Output:** JSON file with position histograms
-
-**Performance (1Mb germline data):**
-- Records: 11,281
-- Time: 1,260 seconds
-- Memory: < 1GB
-
-### `readfreq` - Read Frequency at Positions
-
-**Note:** Currently only available in legacy `hvariant` binary (not built by default).
-
-Extracts sequences and read counts from BAM files at specified positions.
-
-**Legacy Usage:**
-```bash
-hvariant readfreq \
-  --reads sample.bam \
-  --variants positions.bed \
-  --outfile output.tsv
-```
-
-**Input:** BED file (3 columns) + indexed BAM file
-
-**Output:** TSV with format:
-```
-chr     start   end     sequence        count
-20      47000001        47000003        CAA     4
-20      47100001        47100003        CTG     5
-```
-
-**Limitations:**
-- Reads with hard-clipped or pan CIGAR operations are excluded
-- Sequences extracted from reads, not reference
-
-
 ## Development Roadmap
 
 **High Priority:**
-- [ ] Integrate `mpileup-rs` into main CLI
-- [ ] Migrate `readinfo` and `readfreq` to `varianth` CLI
-- [ ] Add comprehensive tests
 
+- [ ] Integrate `mpileup-rs` into main CLI
 - [ ] Migration of [breadth](https://github.com/davidmasp/breadth)
 - [ ] Migration of [tabix unique](https://github.com/davidmasp/tabixunique)
 - [ ] Migration of [matchseq](https://github.com/davidmasp/matchseq)
-
-**Future Enhancements:**
-- [ ] Parallel processing support for multiple chromosomes
-- [ ] Streaming VCF processing
-- [ ] Additional variant annotation types
-- [ ] Multi-sample support
 
 ---
 
 ## License
 
 See LICENSE file for details.
-
