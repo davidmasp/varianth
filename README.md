@@ -10,6 +10,12 @@ Pronounced like "*tenth*" (with final θ).
 
 This project relies heavily on [noodles](https://github.com/zaeleus/noodles) for genomic file format handling.
 
+* [kmer count](#kcount---k-mer-counting)
+* [ms](#ms---add-mutation-subtype-annotations)
+* [vep2table](#vep2table---expand-vep-csq-annotations-to-table)
+* [g2p](#g2p---genome-to-protein-nonsynonymous-mutation-expansion)
+
+
 ## Overview
 
 This workspace contains multiple crates providing utilities for variant analysis:
