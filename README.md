@@ -111,6 +111,8 @@ hyperfine -m 5 --parameter-scan KMER 5 8 --warmup 2 \
   -n "varianth" "varianth kcount -K {KMER} genome.fa -o test.json"
 ```
 
+Also see a particular usage example in the [docs/examples/cpgs](docs/counting_cpgs_in_genome.md).
+
 ### `vep2table` - Expand VEP CSQ Annotations to Table
 
 Converts VCF records annotated with VEP (`INFO/CSQ`) into a pipe-delimited flat table, creating one output row per CSQ entry.
@@ -169,6 +171,8 @@ varianth g2p \
 
 - Output directory in `--output-prefix` must already exist
 - Reverse-strand CDS entries are handled with reverse complement logic before mutation expansion
+
+Also see a particular usage example for the [MANE](https://ncbiinsights.ncbi.nlm.nih.gov/2024/10/28/mane-v1-4-mane-select-non-coding-genes/) dataset in the [docs/examples/MANE](docs/g2p_run_in_mane.md).
 
 ---
 
