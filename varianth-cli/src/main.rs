@@ -5,6 +5,7 @@ use cmd::ms;
 use cmd::kmercount;
 use cmd::vep2table;
 use cmd::gene2protein;
+use cmd::readinfo;
 
 // LOGS
 use simplelog;
@@ -29,6 +30,7 @@ enum Commands {
     Ms(MsArgs),
     Kcount(KcountArgs),
     Vep2table(Vep2tableArgs),
+    Readinfo(ReadinfoArgs),
     #[command(name = "gene2protein")]
     Gene2protein(Gene2proteinArgs),
 }
@@ -79,6 +81,19 @@ struct Vep2tableArgs {
 }
 
 #[derive(Args)]
+struct ReadinfoArgs {
+    /// BAM file with read information. Requires a BAM index next to it.
+    #[arg(short = 'r', long)]
+    reads: PathBuf,
+    /// VCF file with variants to query.
+    #[arg(short = 'v', long)]
+    variants: PathBuf,
+    /// Output JSON histogram file.
+    #[arg(short = 'o', long, default_value = "out.json")]
+    output: PathBuf,
+}
+
+#[derive(Args)]
 struct Gene2proteinArgs {
     #[arg(long, default_value = "MANE.GRCh38.v1.4.ensembl_genomic.gff.gz")]
     gff_path: String,
@@ -119,6 +134,12 @@ fn main() {
         },
         Commands::Vep2table(args) => {
             vep2table::run(args.input, args.output);
+        },
+        Commands::Readinfo(args) => {
+            if let Err(e) = readinfo::run(args.reads, args.variants, args.output) {
+                error!("Error: {}", e);
+                std::process::exit(1);
+            }
         },
         Commands::Gene2protein(args) => {
             gene2protein::run(

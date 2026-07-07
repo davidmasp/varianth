@@ -1,0 +1,8 @@
+[package]
+name = "readinfo"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+noodles = { version = "0.51.0", features = ["bam", "bgzf", "core", "sam", "vcf"] }
+serde_json = "1.0.108"

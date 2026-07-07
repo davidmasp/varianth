@@ -17,6 +17,7 @@ clap = { version = "4.5.6", features = ["derive"] }
 context = { version = "0.1.0", path = "../context" }
 vep2table = { version = "0.1.0", path = "../vep2table"}
 gene2protein = { version = "0.1.0", path = "../gene2protein"}
+readinfo = { version = "0.1.0", path = "../readinfo" }
 
 [[bin]]
 name = "varianth"

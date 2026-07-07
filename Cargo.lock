@@ -349,15 +349,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2304e00983f87ffb38b55b444b5e3b60a884b5d30c0fca7d82fe33449bbe55ea"
 
 [[package]]
-name = "hvariant"
-version = "0.1.0"
-dependencies = [
- "clap",
- "noodles 0.51.0",
- "serde_json",
-]
-
-[[package]]
 name = "indexmap"
 version = "2.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -584,13 +575,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cba513e9748583439b2d4d4a62ee663e4c24d2f6d8e2b4e9dc536bb170ba8558"
 dependencies = [
  "noodles-bam 0.45.0",
- "noodles-bed",
  "noodles-bgzf 0.24.0",
  "noodles-core 0.12.0",
- "noodles-csi 0.24.0",
  "noodles-fasta 0.29.0",
  "noodles-sam 0.42.0",
- "noodles-tabix 0.29.0",
  "noodles-vcf 0.39.0",
 ]
 
@@ -666,15 +654,6 @@ dependencies = [
  "noodles-core 0.16.0",
  "noodles-csi 0.43.0",
  "noodles-sam 0.71.0",
-]
-
-[[package]]
-name = "noodles-bed"
-version = "0.10.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "deba180b7b94c524307da91d5bc983e0ccb9a08c4e24384cc8f93e0210af254a"
-dependencies = [
- "noodles-core 0.12.0",
 ]
 
 [[package]]
@@ -1098,6 +1077,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "readinfo"
+version = "0.1.0"
+dependencies = [
+ "noodles 0.51.0",
+ "serde_json",
+]
+
+[[package]]
 name = "regex"
 version = "1.12.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1351,6 +1338,7 @@ dependencies = [
  "gene2protein",
  "log",
  "noodles 0.76.0",
+ "readinfo",
  "regex",
  "rustc-hash",
  "serde",

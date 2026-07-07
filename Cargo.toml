@@ -2,8 +2,10 @@
 resolver = "2"
 
 members = [
-    "hvariant",
     "mpileup-rs",
     "context",
     "varianth-cli",
-    "vep2table", "gene2protein"]
+    "vep2table",
+    "gene2protein",
+    "readinfo",
+]
