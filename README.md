@@ -13,7 +13,7 @@ This project relies heavily on [noodles](https://github.com/zaeleus/noodles) for
 * [kmer count](#kcount---k-mer-counting)
 * [ms](#ms---add-mutation-subtype-annotations)
 * [vep2table](#vep2table---expand-vep-csq-annotations-to-table)
-* [g2p](#g2p---genome-to-protein-nonsynonymous-mutation-expansion)
+* [gene2protein](#gene2protein---genome-to-protein-nonsynonymous-mutation-expansion)
 
 
 ## Overview
@@ -28,7 +28,7 @@ Distinct commands:
 - **ms**: Adds mutation subtype annotation to vcf (only for SNVs)
 - **vep2table**: Utility to transform the CSQ annotation from VEP into a table
 - **kmercounts**: counts kmers in selected genomic region.
-- **g2p**: From an annotation file, creates all possible DNA mutations and its associated protein equivalents.
+- **gene2protein**: From an annotation file, creates all possible DNA mutations and its associated protein equivalents.
 
 Other legacy components:
 
@@ -146,14 +146,14 @@ varianth vep2table \
 - Expects `INFO/CSQ` to be present and declared with a `Format:` section in the VCF header
 - Expects exactly one ALT allele per record
 
-### `g2p` - Genome-to-Protein Nonsynonymous Mutation Expansion
+### `gene2protein` - Genome-to-Protein Nonsynonymous Mutation Expansion
 
 Generates all possible nonsynonymous single-nucleotide substitutions for coding sequences by combining genome FASTA, proteome FASTA, and CDS records from GFF.
 
 **Usage:**
 
 ```bash
-varianth g2p \
+varianth gene2protein \
   --gff-path MANE.GRCh38.v1.4.ensembl_genomic.gff.gz \
   --genome-fasta-path genome.fa \
   --proteome-fasta-path MANE.GRCh38.v1.4.ensembl_protein.faa \
@@ -178,7 +178,7 @@ varianth g2p \
 - Output directory in `--output-prefix` must already exist
 - Reverse-strand CDS entries are handled with reverse complement logic before mutation expansion
 
-Also see a particular usage example for the [MANE](https://ncbiinsights.ncbi.nlm.nih.gov/2024/10/28/mane-v1-4-mane-select-non-coding-genes/) dataset in the [docs/examples/MANE](docs/g2p_run_in_mane.md).
+Also see a particular usage example for the [MANE](https://ncbiinsights.ncbi.nlm.nih.gov/2024/10/28/mane-v1-4-mane-select-non-coding-genes/) dataset in the [docs/examples/MANE](docs/gene2protein_run_in_mane.md).
 
 ---
 

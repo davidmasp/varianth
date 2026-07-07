@@ -1,6 +1,6 @@
-# Running `varianth g2p` with MANE (GRCh38 v1.4)
+# Running `varianth gene2protein` with MANE (GRCh38 v1.4)
 
-This note describes a practical workflow to generate and post-process the full nonsynonymous mutation table using the `g2p` subcommand and [MANE](https://ncbiinsights.ncbi.nlm.nih.gov/2024/10/28/mane-v1-4-mane-select-non-coding-genes/) inputs.
+This note describes a practical workflow to generate and post-process the full nonsynonymous mutation table using the `gene2protein` subcommand and [MANE](https://ncbiinsights.ncbi.nlm.nih.gov/2024/10/28/mane-v1-4-mane-select-non-coding-genes/) inputs.
 
 ## Goal
 
@@ -15,11 +15,11 @@ Create a complete table of possible nonsynonymous SNVs for MANE proteins, then p
 - `genome.fa` (+ `genome.fa.fai`) - for example from iGenomes
 - `MANE.GRCh38.v1.4.ensembl_protein.faa` (+ `.fai`) - ⏰ Note that this file needs to be de-compressed and indexed by `samtools faidx` before procedding. 
 
-## 1) Run `g2p`
+## 1) Run `gene2protein`
 
 ```bash
 # 1 min
-varianth g2p \
+varianth gene2protein \
   --gff-path MANE.GRCh38.v1.4.ensembl_genomic.gff.gz \
   --genome-fasta-path genome.fa \
   --proteome-fasta-path MANE.GRCh38.v1.4.ensembl_protein.faa \
@@ -76,7 +76,7 @@ This also allows for random access at any protein context (as in `tabix all_muta
 
 ## Why each output file is useful
 
-- `all_mutations.tsv`: Canonical raw output from `g2p`; best as a reproducible source table.
+- `all_mutations.tsv`: Canonical raw output from `gene2protein`; best as a reproducible source table.
 - `all_mutations.json`: Run diagnostics/QA (`total_proteins`, `successful_count`, `failed_count`, failed IDs/errors, elapsed time).
 - `all_mutations_gsorted.tsv.gz` + index: Best for coordinate-based operations (chromosome/position joins, region filters, genomic overlap workflows).
 - `all_mutations_psorted.tsv` + index: Best for protein-centric analyses (per-protein scans, amino-acid position joins, codon-level aggregations).
