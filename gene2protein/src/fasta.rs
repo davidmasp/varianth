@@ -1,7 +1,6 @@
-
-use noodles::fasta as fasta;
-use noodles::fasta::fai as fai;
 use noodles::core::{Position, Region};
+use noodles::fasta;
+use noodles::fasta::fai;
 use std::fs::File;
 use std::io;
 use std::io::BufReader;
@@ -25,7 +24,7 @@ pub fn reverse_complement(seq: &BString) -> Result<BString, String> {
                 return Err(format!(
                     "Non-canonical DNA base '{}' at position {}",
                     b as char, idx
-                ))
+                ));
             }
         };
         rc.push(comp);
@@ -118,7 +117,3 @@ pub fn pull_entire_record(
 
     Ok(record.sequence().as_ref().to_vec())
 }
-
-
-
-

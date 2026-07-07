@@ -1,5 +1,3 @@
-
-
 use std::collections::{HashMap, HashSet};
 use std::fs::File;
 use std::io::{BufWriter, Write};
@@ -9,14 +7,16 @@ use std::time::Instant;
 use indicatif::{ProgressBar, ProgressStyle};
 use serde::Serialize;
 
-pub mod gff;
-pub mod fasta;
 pub mod codons;
+pub mod fasta;
 pub mod flow;
+pub mod gff;
 
-pub use codons::{CodonError, NonSynonymousMutation, expand_codons_from_sequence, MutationList};
-pub use gff::{collect_cds_by_protein_id, GffReader, GffRecord, Strand, CdsProteome};
-pub use fasta::{open_indexed_fasta, pull_entire_record, sequence_count, sequence_ids, reverse_complement};
+pub use codons::{CodonError, MutationList, NonSynonymousMutation, expand_codons_from_sequence};
+pub use fasta::{
+    open_indexed_fasta, pull_entire_record, reverse_complement, sequence_count, sequence_ids,
+};
+pub use gff::{CdsProteome, GffReader, GffRecord, Strand, collect_cds_by_protein_id};
 
 pub use flow::g2pflow;
 
@@ -64,7 +64,10 @@ pub fn g2p_run(
     let proteome_keys = proteome.protein_ids();
     let missing_proteins: Vec<&String> = prot_ids.difference(&proteome_keys).collect();
     if !missing_proteins.is_empty() {
-        log::warn!("The following protein IDs were found in the proteome FASTA but are missing from the GFF CDS records: {:?}", missing_proteins);
+        log::warn!(
+            "The following protein IDs were found in the proteome FASTA but are missing from the GFF CDS records: {:?}",
+            missing_proteins
+        );
     } else {
         log::info!("All protein IDs from the proteome FASTA are present in the GFF CDS records.");
     }
@@ -75,9 +78,7 @@ pub fn g2p_run(
             log::warn!("Debug counter limit set.");
             proteome_keys.into_iter().take(limit).collect()
         }
-        _ => {
-            proteome_keys.into_iter().collect()
-        }
+        _ => proteome_keys.into_iter().collect(),
     };
 
     let total_proteins = proteome_keys_input.len();
@@ -101,17 +102,18 @@ pub fn g2p_run(
     );
 
     for pid in &proteome_keys_input {
-        let cds_vec = proteome.get_cloned(pid).expect("Error in internal GFF object.");
+        let cds_vec = proteome
+            .get_cloned(pid)
+            .expect("Error in internal GFF object.");
         log::debug!("{}: {} CDS records", pid, cds_vec.len());
 
-        let pid_mutation_list_result =
-            g2pflow(
-                pid,
-                cds_vec,
-                &mut fasta_reader_genome,
-                &mut fasta_reader_proteins,
-                &protein_index,
-            );
+        let pid_mutation_list_result = g2pflow(
+            pid,
+            cds_vec,
+            &mut fasta_reader_genome,
+            &mut fasta_reader_proteins,
+            &protein_index,
+        );
 
         match pid_mutation_list_result {
             Ok(ml) => {
@@ -152,7 +154,9 @@ pub fn g2p_run(
 
     let json = serde_json::to_string_pretty(&metrics).expect("failed to serialize metrics");
     let mut json_file = File::create(&json_path).expect("failed to create metrics JSON file");
-    json_file.write_all(json.as_bytes()).expect("failed to write metrics JSON file");
+    json_file
+        .write_all(json.as_bytes())
+        .expect("failed to write metrics JSON file");
 
     log::info!(
         "Done. {} proteins processed ({} succeeded, {} failed) in {:.2}s. Metrics written to {}",
@@ -163,5 +167,3 @@ pub fn g2p_run(
         json_path,
     );
 }
-
-

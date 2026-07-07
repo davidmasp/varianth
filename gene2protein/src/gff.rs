@@ -1,4 +1,3 @@
-
 use std::collections::{HashMap, HashSet};
 use std::fs::File;
 use std::io::{self, BufRead, BufReader};
@@ -114,16 +113,19 @@ impl GffRecord {
         if fields.len() < 9 {
             return Err(io::Error::new(
                 io::ErrorKind::InvalidData,
-                format!("expected 9 tab-separated fields, got {}: {line}", fields.len()),
+                format!(
+                    "expected 9 tab-separated fields, got {}: {line}",
+                    fields.len()
+                ),
             ));
         }
 
         let start = fields[3].parse::<usize>().map_err(|e| {
             io::Error::new(io::ErrorKind::InvalidData, format!("invalid start: {e}"))
         })?;
-        let end = fields[4].parse::<usize>().map_err(|e| {
-            io::Error::new(io::ErrorKind::InvalidData, format!("invalid end: {e}"))
-        })?;
+        let end = fields[4]
+            .parse::<usize>()
+            .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, format!("invalid end: {e}")))?;
 
         let score = match fields[5] {
             "." | "" => None,
@@ -247,7 +249,7 @@ impl Iterator for GffReader {
 /// Collect CDS records by protein_id for a set of protein IDs.
 pub fn collect_cds_by_protein_id<P: AsRef<Path>>(
     gff_path: P,
-    prot_ids: &HashSet<String>
+    prot_ids: &HashSet<String>,
 ) -> io::Result<CdsProteome> {
     let gff_reader = GffReader::open(gff_path)?;
     let cds_bstring = BString::from("CDS");
@@ -281,8 +283,6 @@ pub fn collect_cds_by_protein_id<P: AsRef<Path>>(
 
     Ok(proteome)
 }
-
-
 
 #[cfg(test)]
 mod tests {
@@ -326,7 +326,7 @@ mod tests {
 
     #[test]
     fn skip_comments_and_blanks() {
-        use std::io::{Cursor, BufReader};
+        use std::io::{BufReader, Cursor};
         // Build a fake in-memory GFF
         let data = format!("##gff-version 3\n# comment\n\n{GFF_LINE}\n");
         let cursor = Cursor::new(data.into_bytes());
@@ -337,9 +337,13 @@ mod tests {
         loop {
             line.clear();
             let n = std::io::BufRead::read_line(&mut reader, &mut line).unwrap();
-            if n == 0 { break; }
+            if n == 0 {
+                break;
+            }
             let t = line.trim_end_matches(['\n', '\r']);
-            if t.is_empty() || t.starts_with('#') { continue; }
+            if t.is_empty() || t.starts_with('#') {
+                continue;
+            }
             records.push(GffRecord::parse(t).unwrap());
         }
         assert_eq!(records.len(), 1);

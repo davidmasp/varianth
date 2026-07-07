@@ -1,14 +1,13 @@
-
-
-
-pub use crate::codons::{CodonError, NonSynonymousMutation, expand_codons_from_sequence, MutationList};
-pub use crate::gff::{collect_cds_by_protein_id, GffReader, GffRecord, Strand};
+pub use crate::codons::{
+    CodonError, MutationList, NonSynonymousMutation, expand_codons_from_sequence,
+};
 pub use crate::fasta::{pull_entire_record, reverse_complement};
+pub use crate::gff::{GffReader, GffRecord, Strand, collect_cds_by_protein_id};
 
-use noodles::core::{Region, Position};
+use bstr::BString;
+use noodles::core::{Position, Region};
 use noodles::fasta;
 use noodles::fasta::fai;
-use bstr::BString;
 use std::fs::File;
 use std::io::BufReader;
 
@@ -19,7 +18,6 @@ pub fn g2pflow(
     proteome_reader: &mut fasta::io::IndexedReader<BufReader<File>>,
     proteome_index: &fai::Index,
 ) -> Result<MutationList, CodonError> {
-
     // I am pretty sure this should be sorted already.
     cds_vec.sort_by_key(|cds| cds.start);
 
@@ -41,15 +39,14 @@ pub fn g2pflow(
                 Position::try_from(cds.start).expect("failed to convert start position");
             let end_pos = Position::try_from(cds.end).expect("failed to convert end position");
             let cds_region = Region::new(cds.seqid.clone(), start_pos..=end_pos);
-            let cds_sequence = genome_reader
-                .query(&cds_region)
-                .map_err(|_| CodonError::MissingReferenceSequence {
+            let cds_sequence = genome_reader.query(&cds_region).map_err(|_| {
+                CodonError::MissingReferenceSequence {
                     protein_id: pid.to_string(),
                     seqid: cds.seqid.to_string(),
-                })?;
+                }
+            })?;
             let dna_seq = cds_sequence.sequence().as_ref().to_vec();
-            let gpos = (cds.start..=cds.end)
-                .collect::<Vec<usize>>();
+            let gpos = (cds.start..=cds.end).collect::<Vec<usize>>();
             assert_eq!(
                 dna_seq.len(),
                 gpos.len(),
@@ -60,15 +57,21 @@ pub fn g2pflow(
         .collect::<Result<Vec<_>, CodonError>>()?;
 
     // once we have the full sequence we can do the reverse complement if needed.
-    let full_cds_sequence_vec = cds_extracted_info.iter()
+    let full_cds_sequence_vec = cds_extracted_info
+        .iter()
         .flat_map(|(seq, _)| seq.clone())
         .collect::<Vec<u8>>();
     let mut full_cds_sequence = BString::from(full_cds_sequence_vec);
     full_cds_sequence.make_ascii_uppercase();
     if let Some(ref strand) = unique_strand {
         if strand == &Strand::Reverse {
-            full_cds_sequence = reverse_complement(&full_cds_sequence).expect("failed to compute reverse complement");
-            log::debug!("{}: reverse complemented CDS sequence:\n{}\n", pid, full_cds_sequence);
+            full_cds_sequence = reverse_complement(&full_cds_sequence)
+                .expect("failed to compute reverse complement");
+            log::debug!(
+                "{}: reverse complemented CDS sequence:\n{}\n",
+                pid,
+                full_cds_sequence
+            );
         }
     } else {
         // id think this is not possible.
@@ -76,7 +79,8 @@ pub fn g2pflow(
     }
 
     // in case we need to do the reverse complement, we also need to reverse the genomic positions.
-    let mut full_gpos = cds_extracted_info.iter()
+    let mut full_gpos = cds_extracted_info
+        .iter()
         .flat_map(|(_, gpos)| gpos.clone())
         .collect::<Vec<usize>>();
     match unique_strand {
@@ -100,5 +104,4 @@ pub fn g2pflow(
         unique_strand.expect("Missing strand information for protein_id"),
     );
     Ok(mutation_list)
-
 }

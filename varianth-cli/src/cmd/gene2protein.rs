@@ -1,5 +1,3 @@
-
-
 use gene2protein::g2p_run;
 
 pub fn run(

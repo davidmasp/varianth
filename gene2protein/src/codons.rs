@@ -1,4 +1,3 @@
-
 // THIS CODE IS BASED ORIGINALLY IN THE SEQ2MUT MODULE
 
 use crate::gff::Strand;
@@ -9,11 +8,10 @@ const VALID_DNA: [u8; 4] = [b'A', b'C', b'G', b'T'];
 
 // Dense 64-entry standard genetic code lookup with A/C/G/T => 0/1/2/3 encoding.
 const CODON_TABLE: [u8; 64] = [
-    b'K', b'N', b'K', b'N', b'T', b'T', b'T', b'T', b'R', b'S', b'R', b'S', b'I', b'I', b'M',
-    b'I', b'Q', b'H', b'Q', b'H', b'P', b'P', b'P', b'P', b'R', b'R', b'R', b'R', b'L', b'L',
-    b'L', b'L', b'E', b'D', b'E', b'D', b'A', b'A', b'A', b'A', b'G', b'G', b'G', b'G', b'V',
-    b'V', b'V', b'V', b'*', b'Y', b'*', b'Y', b'S', b'S', b'S', b'S', b'*', b'C', b'W', b'C',
-    b'L', b'F', b'L', b'F',
+    b'K', b'N', b'K', b'N', b'T', b'T', b'T', b'T', b'R', b'S', b'R', b'S', b'I', b'I', b'M', b'I',
+    b'Q', b'H', b'Q', b'H', b'P', b'P', b'P', b'P', b'R', b'R', b'R', b'R', b'L', b'L', b'L', b'L',
+    b'E', b'D', b'E', b'D', b'A', b'A', b'A', b'A', b'G', b'G', b'G', b'G', b'V', b'V', b'V', b'V',
+    b'*', b'Y', b'*', b'Y', b'S', b'S', b'S', b'S', b'*', b'C', b'W', b'C', b'L', b'F', b'L', b'F',
 ];
 
 #[inline]
@@ -38,12 +36,8 @@ fn codon_to_index(c0: u8, c1: u8, c2: u8) -> Option<usize> {
 #[inline]
 fn is_alt_start_codon(c0: u8, c1: u8, c2: u8) -> bool {
     ((c0 == b'T' || c0 == b't') && (c1 == b'T' || c1 == b't') && (c2 == b'G' || c2 == b'g'))
-        || ((c0 == b'C' || c0 == b'c')
-            && (c1 == b'T' || c1 == b't')
-            && (c2 == b'G' || c2 == b'g'))
-        || ((c0 == b'G' || c0 == b'g')
-            && (c1 == b'T' || c1 == b't')
-            && (c2 == b'G' || c2 == b'g'))
+        || ((c0 == b'C' || c0 == b'c') && (c1 == b'T' || c1 == b't') && (c2 == b'G' || c2 == b'g'))
+        || ((c0 == b'G' || c0 == b'g') && (c1 == b'T' || c1 == b't') && (c2 == b'G' || c2 == b'g'))
 }
 
 #[inline]
@@ -54,7 +48,6 @@ fn translate_codon(c0: u8, c1: u8, c2: u8, prot_position: usize) -> Option<u8> {
     codon_to_index(c0, c1, c2).map(|idx| CODON_TABLE[idx])
 }
 
-
 pub struct MutationList {
     pub mutations: Vec<NonSynonymousMutation>,
     pub protein_id: String,
@@ -63,7 +56,12 @@ pub struct MutationList {
 }
 
 impl MutationList {
-    pub fn new(mutations: Vec<NonSynonymousMutation>, protein_id: String, sequence_id: BString, strand: Strand) -> Self {
+    pub fn new(
+        mutations: Vec<NonSynonymousMutation>,
+        protein_id: String,
+        sequence_id: BString,
+        strand: Strand,
+    ) -> Self {
         Self {
             mutations,
             protein_id,
@@ -150,11 +148,13 @@ pub enum CodonError {
 impl std::fmt::Display for CodonError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            CodonError::DnaProteinLengthMismatch { dna_len, protein_len } => write!(
+            CodonError::DnaProteinLengthMismatch {
+                dna_len,
+                protein_len,
+            } => write!(
                 f,
                 "DNA length/3 does not match protein length + 1 (dna_len={}, protein_len={})",
-                dna_len,
-                protein_len
+                dna_len, protein_len
             ),
             CodonError::ReferenceAminoAcidMismatch {
                 position,
@@ -163,9 +163,7 @@ impl std::fmt::Display for CodonError {
             } => write!(
                 f,
                 "reference amino acid mismatch at position {}: expected {}, got {}",
-                position,
-                expected,
-                found
+                position, expected, found
             ),
             CodonError::InconsistentStrand { protein_id } => write!(
                 f,
@@ -175,8 +173,7 @@ impl std::fmt::Display for CodonError {
             CodonError::MissingReferenceSequence { protein_id, seqid } => write!(
                 f,
                 "Reference sequence '{}' not found in genome FASTA for protein_id {}",
-                seqid,
-                protein_id
+                seqid, protein_id
             ),
         }
     }
@@ -241,7 +238,11 @@ pub fn expand_codons_from_sequence(
             });
         }
 
-        let codon_positions = [genome_pos[offset], genome_pos[offset + 1], genome_pos[offset + 2]];
+        let codon_positions = [
+            genome_pos[offset],
+            genome_pos[offset + 1],
+            genome_pos[offset + 2],
+        ];
         let ref_codon = [c0, c1, c2];
 
         for i in 0..3 {
