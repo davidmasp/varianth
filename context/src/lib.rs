@@ -44,7 +44,7 @@ fn get_ntp_from_record(
     let tntp_result = fasta_index_reader.query(&tntp_region);
     let tntp = match tntp_result {
         Ok(v) => v,
-        Err(e) => {
+        Err(_e) => {
             return write_nnn_string(k)
         },
     };
@@ -57,7 +57,7 @@ fn get_ntp_from_record(
     out_str
 }
 
-pub fn addms(genome: PathBuf, variants_in: PathBuf, variants_out: PathBuf, kval: usize, key_name: String, key_description: String, use_stdin: bool, use_stdout: bool) {
+pub fn addms(genome: PathBuf, variants_in: PathBuf, variants_out: PathBuf, kval: usize, key_name: String, key_description: String, _use_stdin: bool, _use_stdout: bool) {
     /*
     let reference_path: PathBuf = Into::into("reference.fa");
     let vcf_path: PathBuf = Into::into("sample.vcf.gz");
