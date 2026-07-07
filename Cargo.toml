@@ -6,5 +6,5 @@ members = [
     "varianth-cli",
     "vep2table",
     "gene2protein",
-    "readinfo",
+    "readinfo", "kmer",
 ]

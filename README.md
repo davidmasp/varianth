@@ -1,8 +1,7 @@
 # varianth - collection for VARIANT Helpers
 
 This is a growing, actively developed and opinionated collection of
-small rust tools and libraries aiming at *helping* in the analysis of genomic
-variant sites.
+small rust tools and libraries aiming at *helping* in the analysis of genomic variant sites.
 
 Pronounced like "*tenth*" (with final θ).
 
@@ -24,15 +23,10 @@ This workspace contains multiple crates providing utilities for variant analysis
 
 Distinct commands:
 
-- **ms**: Adds mutation subtype annotation to vcf (only for SNVs)
+- **ms/context**: Adds mutation subtype annotation to vcf (only for SNVs)
 - **vep2table**: Utility to transform the CSQ annotation from VEP into a table
 - **kmercounts**: counts kmers in selected genomic region.
 - **gene2protein**: From an annotation file, creates all possible DNA mutations and its associated protein equivalents.
-
-Other legacy components:
-
-- **context**: Mutation subtype annotation functionality
-- **hvariant**: Legacy BAM/VCF analysis tools (deprecated, being migrated)
 
 ---
 
