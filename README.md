@@ -33,7 +33,6 @@ Other legacy components:
 
 - **context**: Mutation subtype annotation functionality
 - **hvariant**: Legacy BAM/VCF analysis tools (deprecated, being migrated)
-- **mpileup-rs**: Rust implementation of mpileup functionality (in development)
 
 ---
 
@@ -185,26 +184,10 @@ Also see a particular usage example for the [MANE](https://ncbiinsights.ncbi.nlm
 
 These tools are under active development and may not be fully functional or integrated into the main CLI:
 
-### `mpileup-rs` - Rust Mpileup Implementation
-
-A Rust reimplementation of samtools mpileup for generating pileup format from BAM files.
-
-**Status:** Core functionality implemented but standalone binary only. Performance is currently ~24% slower than samtools (1.12s vs 0.90s on test data).
-
-**Current capabilities:**
-
-- Basic pileup generation with reference base
-- Quality filtering (mapping quality, base quality)
-- Flag-based read filtering
-- Compatible output format with samtools mpileup
-
-**Usage (standalone binary):**
-
 ## Development Roadmap
 
 **High Priority:**
 
-- [ ] Integrate `mpileup-rs` into main CLI
 - [ ] Migration of [breadth](https://github.com/davidmasp/breadth)
 - [ ] Migration of [tabix unique](https://github.com/davidmasp/tabixunique)
 - [ ] Migration of [matchseq](https://github.com/davidmasp/matchseq)
