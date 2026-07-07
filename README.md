@@ -21,7 +21,6 @@ This project relies heavily on [noodles](https://github.com/zaeleus/noodles) for
 This workspace contains multiple crates providing utilities for variant analysis:
 
 - **varianth-cli**: Main command-line interface
-- **varianth-core**: Core data structures and utilities
 
 Distinct commands:
 

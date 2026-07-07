@@ -6,5 +6,4 @@ members = [
     "mpileup-rs",
     "context",
     "varianth-cli",
-    "varianth-core",
-    "vep2table", "g2p"]
+    "vep2table", "gene2protein"]

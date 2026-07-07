@@ -14,10 +14,9 @@ serde = { version = "1.0.203", features = ["derive"] }
 serde_json = { version = "1.0.117", features = ["std"] }
 simplelog = "0.12.2"
 clap = { version = "4.5.6", features = ["derive"] }
-varianth-core = { version = "0.1.0", path = "../varianth-core" }
 context = { version = "0.1.0", path = "../context" }
 vep2table = { version = "0.1.0", path = "../vep2table"}
-g2p = { version = "0.1.0", path = "../g2p"}
+gene2protein = { version = "0.1.0", path = "../gene2protein"}
 
 [[bin]]
 name = "varianth"

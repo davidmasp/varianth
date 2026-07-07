@@ -1,6 +1,6 @@
 
 
-use g2p::g2p_run;
+use gene2protein::g2p_run;
 
 pub fn run(
     gff_path: String,
@@ -17,4 +17,3 @@ pub fn run(
         &output_prefix,
     );
 }
-

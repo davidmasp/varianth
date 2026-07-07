@@ -185,7 +185,7 @@ enum GffBuf {
 ///
 /// # Example
 /// ```no_run
-/// use g2p::GffReader;
+/// use gene2protein::GffReader;
 ///
 /// let reader = GffReader::open("annotations.gff3.gz").unwrap();
 /// for record in reader {

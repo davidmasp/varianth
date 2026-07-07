@@ -17,9 +17,6 @@ use noodles::core::{Region, Position};
 // this is for fast hashing
 use rustc_hash::FxHashMap;
 
-// internal dependencies
-// use varianth_core::position::Contig;
-
 use log::{error, info};
 
 /*
@@ -323,4 +320,3 @@ fn serialize_to_json<T: Serialize>(json_path: Option<PathBuf>, obj: &T) -> () {
         }
     }
 }
-
