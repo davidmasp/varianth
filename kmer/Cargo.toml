@@ -1,0 +1,12 @@
+[package]
+name = "kmer"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+log = "0.4.21"
+noodles = { version = "0.76.0", features = ["bed", "core", "fasta"] }
+regex = "1.10.4"
+rustc-hash = "1.1.0"
+serde = { version = "1.0.203", features = ["derive"] }
+serde_json = { version = "1.0.117", features = ["std"] }

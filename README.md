@@ -96,7 +96,7 @@ varianth kcount \
 - `-K, --size`: K-mer size
 - `-S, --table-size`: Hash table size (optional, for optimization)
 - `-r, --regions`: Region string for filtering (e.g., "chr1:1000-2000")
-- `-R, --regions-file`: File containing regions (🚨 not implemented yet)
+- `-R, --regions-file`: BED3+ file containing regions; extra BED columns are ignored
 - `-o, --output`: Output JSON file
 - `-v, --verbose`: Enable verbose output
 
