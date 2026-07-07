@@ -48,8 +48,6 @@ pub fn addms(
     kval: usize,
     key_name: String,
     key_description: String,
-    _use_stdin: bool,
-    _use_stdout: bool,
 ) {
     let reference_path: PathBuf = genome;
     let vcf_path: PathBuf = variants_in;

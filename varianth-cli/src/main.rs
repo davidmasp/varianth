@@ -155,11 +155,11 @@ fn main() {
         }
         Commands::Gene2protein(args) => {
             gene2protein::run(
-                args.gff_path,
-                args.genome_fasta_path,
-                args.proteome_fasta_path,
+                &args.gff_path,
+                &args.genome_fasta_path,
+                &args.proteome_fasta_path,
                 args.debug_flag,
-                args.output_prefix,
+                &args.output_prefix,
             );
         }
     }

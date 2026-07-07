@@ -7,6 +7,7 @@ use noodles::vcf::variant::record::info::field::value::Array as VcfArray;
 use noodles::vcf::Record as VcfRecord;
 use std::fs::File;
 use std::io::{BufWriter, Write};
+use std::path::Path;
 
 pub fn process_record(record: VcfRecord, header: &vcf::Header) -> Vec<String> {
     let chr_name = record.reference_sequence_name();
@@ -74,7 +75,7 @@ pub fn process_record(record: VcfRecord, header: &vcf::Header) -> Vec<String> {
     }
 }
 
-pub fn vep2table(vcf_path: &str, output_path: &str) {
+pub fn vep2table(vcf_path: impl AsRef<Path>, output_path: impl AsRef<Path>) {
     // let vcf_path = "../path_to_mutation.annotated.vcf.gz";
     let mut reader = vcf::io::reader::Builder::default()
         .build_from_path(vcf_path)
