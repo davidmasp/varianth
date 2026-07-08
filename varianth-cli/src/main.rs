@@ -130,7 +130,7 @@ fn main() {
             }
         }
         Commands::Kcount(args) => {
-            let rres = kmercount::run(
+            if let Err(e) = kmercount::run(
                 args.fasta,
                 args.size,
                 args.regions,
@@ -139,12 +139,9 @@ fn main() {
                 args.table_size,
                 args.verbose,
                 args.skip_ambiguous,
-            );
-            match rres {
-                Ok(_) => {}
-                Err(e) => {
-                    error!("Error: {}", e);
-                }
+            ) {
+                error!("Error: {:#}", e);
+                std::process::exit(1);
             }
         }
         Commands::Vep2table(args) => {

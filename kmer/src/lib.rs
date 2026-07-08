@@ -407,11 +407,14 @@ mod tests {
     }
 
     #[test]
-    fn invalid_bed_record_returns_invalid_data() {
-        let record = parse_bed3_record("chr1\tbad\t5").unwrap();
-        let result = bed_record_to_region(record);
+    fn invalid_bed_record_returns_invalid_data() -> anyhow::Result<()> {
+        let record = parse_bed3_record("chr1\tbad\t5")?;
+        let Err(err) = bed_record_to_region(record) else {
+            anyhow::bail!("expected invalid BED record to return an error");
+        };
 
-        assert_eq!(result.unwrap_err().kind(), io::ErrorKind::InvalidData);
+        assert_eq!(err.kind(), io::ErrorKind::InvalidData);
+        Ok(())
     }
 
     #[test]

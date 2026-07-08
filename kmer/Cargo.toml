@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+anyhow = "1.0.103"
 log = "0.4.33"
 noodles = { version = "0.111.0", features = ["bed", "core", "fasta"] }
 regex = "1.12.4"

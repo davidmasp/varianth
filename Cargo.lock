@@ -421,6 +421,7 @@ dependencies = [
 name = "kmer"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "log",
  "noodles",
  "regex",
