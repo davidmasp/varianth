@@ -101,6 +101,10 @@ impl MutationList {
     }
 }
 
+fn codon_to_string(c0: u8, c1: u8, c2: u8) -> String {
+    String::from_utf8_lossy(&[c0, c1, c2]).into_owned()
+}
+
 fn complement_nucleotide(base: char) -> char {
     match base {
         'A' => 'T',
@@ -143,6 +147,14 @@ pub enum CodonError {
         protein_id: String,
         seqid: String,
     },
+    InvalidDnaCodon {
+        position: usize,
+        codon: String,
+    },
+    InvalidGeneratedCodon {
+        position: usize,
+        codon: String,
+    },
 }
 
 impl std::fmt::Display for CodonError {
@@ -174,6 +186,16 @@ impl std::fmt::Display for CodonError {
                 f,
                 "Reference sequence '{}' not found in genome FASTA for protein_id {}",
                 seqid, protein_id
+            ),
+            CodonError::InvalidDnaCodon { position, codon } => write!(
+                f,
+                "invalid DNA codon '{}' at protein position {}",
+                codon, position
+            ),
+            CodonError::InvalidGeneratedCodon { position, codon } => write!(
+                f,
+                "invalid generated codon '{}' at protein position {}",
+                codon, position
             ),
         }
     }
@@ -228,8 +250,12 @@ pub fn expand_codons_from_sequence(
         let c2 = dna_seq[offset + 2];
         let aa = protein_seq[codon_idx];
 
-        let wt_cdn_aa =
-            translate_codon(c0, c1, c2, prot_position).expect("invalid codon in DNA sequence");
+        let wt_cdn_aa = translate_codon(c0, c1, c2, prot_position).ok_or_else(|| {
+            CodonError::InvalidDnaCodon {
+                position: prot_position,
+                codon: codon_to_string(c0, c1, c2),
+            }
+        })?;
         if wt_cdn_aa != aa {
             return Err(CodonError::ReferenceAminoAcidMismatch {
                 position: prot_position,
@@ -254,7 +280,10 @@ pub fn expand_codons_from_sequence(
                 let mut mutated = ref_codon;
                 mutated[i] = alt_base;
                 let new_aa = translate_codon(mutated[0], mutated[1], mutated[2], prot_position)
-                    .expect("invalid codon generated during mutation expansion");
+                    .ok_or_else(|| CodonError::InvalidGeneratedCodon {
+                        position: prot_position,
+                        codon: codon_to_string(mutated[0], mutated[1], mutated[2]),
+                    })?;
                 if new_aa != aa {
                     generated_mutations.push(NonSynonymousMutation::new(
                         prot_position,

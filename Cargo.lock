@@ -323,6 +323,7 @@ dependencies = [
 name = "gene2protein"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "bstr",
  "env_logger",
  "flate2",

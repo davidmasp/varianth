@@ -157,13 +157,16 @@ fn main() {
             }
         }
         Commands::Gene2protein(args) => {
-            gene2protein::run(
+            if let Err(e) = gene2protein::run(
                 &args.gff_path,
                 &args.genome_fasta_path,
                 &args.proteome_fasta_path,
                 args.debug_flag,
                 &args.output_prefix,
-            );
+            ) {
+                error!("Error: {:#}", e);
+                std::process::exit(1);
+            }
         }
     }
 }

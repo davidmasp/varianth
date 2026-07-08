@@ -189,10 +189,13 @@ enum GffBuf {
 /// ```no_run
 /// use gene2protein::GffReader;
 ///
-/// let reader = GffReader::open("annotations.gff3.gz").unwrap();
-/// for record in reader {
-///     let record = record.unwrap();
-///     println!("{}\t{}\t{}", record.seqid, record.feature_type, record.start);
+/// fn main() -> std::io::Result<()> {
+///     let reader = GffReader::open("annotations.gff3.gz")?;
+///     for record in reader {
+///         let record = record?;
+///         println!("{}\t{}\t{}", record.seqid, record.feature_type, record.start);
+///     }
+///     Ok(())
 /// }
 /// ```
 pub struct GffReader {

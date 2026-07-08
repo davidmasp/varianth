@@ -4,6 +4,7 @@ use std::io::{BufWriter, Write};
 use std::path::Path;
 use std::time::Instant;
 
+use anyhow::{Context, Result, bail};
 use indicatif::{ProgressBar, ProgressStyle};
 use serde::Serialize;
 
@@ -37,27 +38,27 @@ pub fn g2p_run(
     proteome_fasta_path: &str,
     debug_flag: Option<usize>,
     output_prefix: &str,
-) {
+) -> Result<()> {
     let tsv_path = format!("{}.tsv", output_prefix);
     let json_path = format!("{}.json", output_prefix);
 
     let output_dir = Path::new(output_prefix).parent();
     if let Some(dir) = output_dir {
         if !dir.as_os_str().is_empty() && !dir.is_dir() {
-            log::error!("Output directory does not exist: {}", dir.display());
-            std::process::exit(1);
+            bail!("output directory does not exist: {}", dir.display());
         }
     }
 
     // fai derived automatically from genome_fasta_path + ".fai"
-    let mut fasta_reader_proteins = open_indexed_fasta(proteome_fasta_path, None::<&str>);
+    let mut fasta_reader_proteins = open_indexed_fasta(proteome_fasta_path, None::<&str>)
+        .with_context(|| format!("failed to open proteome FASTA {proteome_fasta_path}"))?;
     let protein_index = fasta_reader_proteins.index().clone();
     let seq_count = sequence_count(&fasta_reader_proteins);
     log::info!("Number of sequences in proteome FASTA: {}", seq_count);
 
     let prot_ids: HashSet<String> = sequence_ids(&fasta_reader_proteins).into_iter().collect();
     let proteome = collect_cds_by_protein_id(gff_path, &prot_ids)
-        .expect("failed to collect CDS records by protein_id");
+        .with_context(|| format!("failed to collect CDS records by protein_id from {gff_path}"))?;
     log::info!("Proteome length: {}", proteome.len());
 
     // this is just a sanity check to make sure all proteins are matched
@@ -86,9 +87,11 @@ pub fn g2p_run(
     let mut failed_ids: Vec<String> = Vec::new();
     let mut failed_errors: HashMap<String, String> = HashMap::new();
 
-    let out_file = File::create(&tsv_path).expect("failed to create output TSV file");
+    let out_file = File::create(&tsv_path)
+        .with_context(|| format!("failed to create output TSV file {tsv_path}"))?;
     let mut writer = BufWriter::new(out_file);
-    let mut fasta_reader_genome = open_indexed_fasta(genome_fasta_path, None::<&str>);
+    let mut fasta_reader_genome = open_indexed_fasta(genome_fasta_path, None::<&str>)
+        .with_context(|| format!("failed to open genome FASTA {genome_fasta_path}"))?;
 
     let start = Instant::now();
 
@@ -97,14 +100,14 @@ pub fn g2p_run(
         ProgressStyle::with_template(
             "{spinner:.green} [{elapsed_precise}] [{wide_bar:.cyan/blue}] {pos}/{len} ({per_sec}, ETA {eta})"
         )
-        .expect("failed to parse progress bar template")
+        .context("failed to parse progress bar template")?
         .progress_chars("#>-"),
     );
 
     for pid in &proteome_keys_input {
         let cds_vec = proteome
             .get_cloned(pid)
-            .expect("Error in internal GFF object.");
+            .with_context(|| format!("internal GFF object is missing protein_id {pid}"))?;
         log::debug!("{}: {} CDS records", pid, cds_vec.len());
 
         let pid_mutation_list_result = g2pflow(
@@ -119,21 +122,25 @@ pub fn g2p_run(
             Ok(ml) => {
                 let lines = ml.format_lines();
                 for line in lines {
-                    writeln!(writer, "{}", line).expect("failed to write TSV line");
+                    writeln!(writer, "{}", line).with_context(|| {
+                        format!("failed to write TSV line for protein_id {pid}")
+                    })?;
                 }
                 successful_count += 1;
             }
             Err(e) => {
-                log::error!("Error processing protein_id {}: {}", pid, e);
+                log::error!("Error processing protein_id {}: {:#}", pid, e);
                 failed_ids.push(pid.clone());
-                failed_errors.insert(pid.clone(), e.to_string());
+                failed_errors.insert(pid.clone(), format!("{:#}", e));
             }
         }
         pb.inc(1);
     }
     pb.finish_with_message("done");
 
-    writer.flush().expect("failed to flush output TSV file");
+    writer
+        .flush()
+        .with_context(|| format!("failed to flush output TSV file {tsv_path}"))?;
 
     let elapsed = start.elapsed().as_secs_f64();
     let proteins_per_second = if elapsed > 0.0 {
@@ -152,11 +159,12 @@ pub fn g2p_run(
         proteins_per_second,
     };
 
-    let json = serde_json::to_string_pretty(&metrics).expect("failed to serialize metrics");
-    let mut json_file = File::create(&json_path).expect("failed to create metrics JSON file");
+    let json = serde_json::to_string_pretty(&metrics).context("failed to serialize metrics")?;
+    let mut json_file = File::create(&json_path)
+        .with_context(|| format!("failed to create metrics JSON file {json_path}"))?;
     json_file
         .write_all(json.as_bytes())
-        .expect("failed to write metrics JSON file");
+        .with_context(|| format!("failed to write metrics JSON file {json_path}"))?;
 
     log::info!(
         "Done. {} proteins processed ({} succeeded, {} failed) in {:.2}s. Metrics written to {}",
@@ -166,4 +174,6 @@ pub fn g2p_run(
         elapsed,
         json_path,
     );
+
+    Ok(())
 }
