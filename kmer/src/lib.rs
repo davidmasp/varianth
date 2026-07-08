@@ -379,11 +379,16 @@ fn serialize_to_json<T: Serialize>(json_path: Option<PathBuf>, obj: &T) -> io::R
 mod tests {
     use super::*;
 
+    fn parse_bed3_record(src: &str) -> io::Result<bed::Record<3>> {
+        let mut reader = bed::io::Reader::<3, _>::new(src.as_bytes());
+        let mut record = bed::Record::<3>::default();
+        reader.read_record(&mut record)?;
+        Ok(record)
+    }
+
     #[test]
     fn bed_record_to_region_converts_bed_coordinates() -> io::Result<()> {
-        let record = "chr1\t0\t4"
-            .parse::<bed::Record<3>>()
-            .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, format!("{e}")))?;
+        let record = parse_bed3_record("chr1\t0\t4")?;
         let region = bed_record_to_region(record)?;
 
         assert_eq!(region.to_string(), "chr1:1-4");
@@ -393,9 +398,7 @@ mod tests {
 
     #[test]
     fn bed_record_to_region_accepts_extra_fields() -> io::Result<()> {
-        let record = "chr1\t1\t5\tname\t42"
-            .parse::<bed::Record<3>>()
-            .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, format!("{e}")))?;
+        let record = parse_bed3_record("chr1\t1\t5\tname\t42")?;
         let region = bed_record_to_region(record)?;
 
         assert_eq!(region.to_string(), "chr1:2-5");
@@ -405,9 +408,8 @@ mod tests {
 
     #[test]
     fn invalid_bed_record_returns_invalid_data() {
-        let result = "chr1\tbad\t5"
-            .parse::<bed::Record<3>>()
-            .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, format!("{e}")));
+        let record = parse_bed3_record("chr1\tbad\t5").unwrap();
+        let result = bed_record_to_region(record);
 
         assert_eq!(result.unwrap_err().kind(), io::ErrorKind::InvalidData);
     }
