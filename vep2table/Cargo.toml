@@ -4,4 +4,4 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-noodles = { version = "0.103.0", features = ["vcf"] }
+noodles = { version = "0.111.0", features = ["vcf"] }

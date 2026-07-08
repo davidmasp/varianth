@@ -2,12 +2,14 @@ use std::path::PathBuf;
 
 use noodles::core;
 use noodles::fasta;
-use noodles::fasta::indexed_reader::Builder;
+use noodles::fasta::io::indexed_reader::Builder;
 
 use noodles::vcf;
+use noodles::vcf::header::record::value::map::info::Number;
 use noodles::vcf::header::record::value::map::Info;
 use noodles::vcf::header::record::value::Map;
-use noodles::vcf::header::Number;
+use noodles::vcf::variant::io::Write;
+use noodles::vcf::variant::record_buf::info::field::Value;
 
 // regions and positions are 1-based (!!!)
 // for how to write custom fields in header and in the record see
@@ -19,16 +21,16 @@ fn write_nnn_string(k: usize) -> String {
 }
 
 fn get_ntp_from_record(
-    vcf_record: vcf::Record,
-    fasta_index_reader: &mut fasta::IndexedReader<Box<dyn noodles::fasta::io::BufReadSeek>>,
+    vcf_record: &vcf::variant::RecordBuf,
+    fasta_index_reader: &mut fasta::io::IndexedReader<fasta::io::BufReader<std::fs::File>>,
     k: usize,
 ) -> String {
-    let pos1 = core::Position::try_from(usize::from(vcf_record.position())).unwrap();
+    let pos1 = vcf_record.variant_start().unwrap();
     let end = pos1.checked_add(k).unwrap();
     // for some reason there is no substr method in the noodles?
     let start = core::Position::try_from(usize::from(pos1).checked_sub(k).unwrap()).unwrap();
 
-    let chrom = vcf_record.chromosome().to_string();
+    let chrom = vcf_record.reference_sequence_name().to_string();
     let tntp_region = core::Region::new(chrom, start..=end);
 
     let tntp_result = fasta_index_reader.query(&tntp_region);
@@ -57,17 +59,19 @@ pub fn addms(
 
     /* here we need to decide if stdin is used, not sure how to do that yet */
 
-    let mut variants_reader = vcf::reader::Builder::default()
+    let mut variants_reader = vcf::io::reader::Builder::default()
         .build_from_path(vcf_path)
         .unwrap();
 
     let header = variants_reader.read_header().unwrap();
 
-    let mut writer = vcf::writer::Builder.build_from_path(vcf_path_out).unwrap();
+    let mut writer = vcf::io::writer::Builder::default()
+        .build_from_path(vcf_path_out)
+        .unwrap();
 
     let mut header_out = header.clone();
     // Parse non-standard keys using `info::Key::from_str`.
-    let ms_key: vcf::record::info::field::Key = key_name.parse().unwrap();
+    let ms_key = key_name;
     // Create structured header records using `Map<I>`.
     let ms_value = Map::<Info>::new(
         Number::Count(1),
@@ -78,17 +82,15 @@ pub fn addms(
     writer.write_header(&header_out).unwrap();
 
     // i think we should map this
-    for result in variants_reader.records(&header) {
-        let record = result.unwrap();
-        let mut record_out = record.clone();
-        let tntp_results = get_ntp_from_record(record, &mut reference_reader, kval);
-        record_out.info_mut().insert(
-            ms_key.clone(),
-            Some(vcf::record::info::field::Value::String(
-                tntp_results.clone(),
-            )),
-        );
+    for result in variants_reader.record_bufs(&header) {
+        let mut record_out = result.unwrap();
+        let tntp_results = get_ntp_from_record(&record_out, &mut reference_reader, kval);
+        record_out
+            .info_mut()
+            .insert(ms_key.clone(), Some(Value::String(tntp_results)));
 
-        writer.write_record(&header, &record_out).unwrap();
+        writer
+            .write_variant_record(&header_out, &record_out)
+            .unwrap();
     }
 }

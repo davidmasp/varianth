@@ -138,14 +138,20 @@ fn region_string_to_vec(regions: &str) -> io::Result<Vec<Region>> {
 fn regions_file_to_vec(regions_path: PathBuf) -> io::Result<Vec<Region>> {
     let mut reader = File::open(regions_path)
         .map(BufReader::new)
-        .map(bed::io::Reader::new)?;
+        .map(bed::io::Reader::<3, _>::new)?;
 
-    let regions: io::Result<Vec<_>> = reader
-        .records::<3>()
-        .map(|result| result.and_then(bed_record_to_region))
-        .collect();
+    let mut regions = Vec::new();
 
-    let regions = regions?;
+    loop {
+        let mut record = bed::Record::<3>::default();
+        let bytes_read = reader.read_record(&mut record)?;
+
+        if bytes_read == 0 {
+            break;
+        }
+
+        regions.push(bed_record_to_region(record)?);
+    }
 
     if regions.is_empty() {
         return Err(io::Error::new(
@@ -158,9 +164,14 @@ fn regions_file_to_vec(regions_path: PathBuf) -> io::Result<Vec<Region>> {
 }
 
 fn bed_record_to_region(record: bed::Record<3>) -> io::Result<Region> {
+    let start = record.feature_start()?;
+    let end = record.feature_end().transpose()?.ok_or_else(|| {
+        io::Error::new(io::ErrorKind::InvalidData, "BED record has no end position")
+    })?;
+
     Ok(Region::new(
-        record.reference_sequence_name(),
-        record.start_position()..=record.end_position(),
+        record.reference_sequence_name().to_owned(),
+        start..=end,
     ))
 }
 
@@ -214,22 +225,27 @@ fn run_unindexed(
 
     let mut fa = Builder::default().build_from_path(fasta_path)?;
 
-    loop {
-        let mut string_contig_name: String = Default::default();
-        let bytes_read = fa.read_definition(&mut string_contig_name)?;
-        if bytes_read == 0 {
-            break;
-        }
-        string_contig_name.remove(0);
+    for result in fa.records() {
+        let record = result?;
+        let string_contig_name = String::from_utf8(record.name().to_vec()).map_err(|e| {
+            io::Error::new(
+                io::ErrorKind::InvalidData,
+                format!("FASTA record name is not valid UTF-8: {e}"),
+            )
+        })?;
+
         if verbose {
             info!("Processing contig: {}", string_contig_name);
         }
         total_count.seqnames.push(string_contig_name.clone());
 
         let mut table_vec: Vec<usize> = vec![0; table_size];
-        let mut sequence_buf = Vec::new();
-        let _ = fa.read_sequence(&mut sequence_buf)?;
-        update_table(&mut table_vec, &sequence_buf, size, skip_ambiguous)?;
+        update_table(
+            &mut table_vec,
+            record.sequence().as_ref(),
+            size,
+            skip_ambiguous,
+        )?;
 
         let mut hash_table_string =
             FxHashMap::with_capacity_and_hasher(table_size, Default::default());
