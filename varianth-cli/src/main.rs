@@ -117,14 +117,17 @@ fn main() {
 
     match cli.command {
         Commands::Ms(args) => {
-            ms::run(
+            if let Err(e) = ms::run(
                 args.fasta,
                 args.variants,
                 args.output,
                 args.kval,
                 args.feature,
                 args.featuredescription,
-            );
+            ) {
+                error!("Error: {:#}", e);
+                std::process::exit(1);
+            }
         }
         Commands::Kcount(args) => {
             let rres = kmercount::run(
