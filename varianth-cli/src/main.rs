@@ -145,7 +145,10 @@ fn main() {
             }
         }
         Commands::Vep2table(args) => {
-            vep2table::run(args.input, args.output);
+            if let Err(e) = vep2table::run(args.input, args.output) {
+                error!("Error: {:#}", e);
+                std::process::exit(1);
+            }
         }
         Commands::Readinfo(args) => {
             if let Err(e) = readinfo::run(args.reads, args.variants, args.output) {
